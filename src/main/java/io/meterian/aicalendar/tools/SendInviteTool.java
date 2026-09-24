@@ -26,6 +26,8 @@ public class SendInviteTool extends AbstractTool {
     static final List<String> REQUIRED_SETTINGS = List.of("profile.name", "profile.surname", "profile.email");
     private static final String INVITE_FILE_NAME = "invite.ics";
     private static final String INVITE_CONTENT_TYPE = "text/calendar; charset=UTF-8; method=REQUEST";
+    /** Tells the model that the outbox file is the delivered email, not a queue waiting for another step. */
+    private static final String DELIVERED_NOTE = "The emails are delivered. There is no later sending step.";
 
     private final CalendarService service;
     private final Settings settings;
@@ -52,7 +54,8 @@ public class SendInviteTool extends AbstractTool {
         return "Email an invitation for an appointment to all its attendees, with an .ics calendar file attached. "
                 + "Write the subject and the body yourself, including the greeting and the signature; call "
                 + "get-user-profile for the signature. Use it only when the user asks. The user must approve "
-                + "before the emails go out. In this project each email is saved as a file in the outbox folder.";
+                + "before the emails go out. In this project, saving the email as a file in the outbox folder IS "
+                + "the delivery: after this tool succeeds, the email is sent and there is no later step.";
     }
 
     @Override
@@ -90,14 +93,19 @@ public class SendInviteTool extends AbstractTool {
     @Override
     protected String run(ToolArguments arguments) {
         List<String> resultLines = new ArrayList<>();
+        boolean anyEmailSent = false;
         for (Email email : buildEmails(arguments)) {
             String recipient = email.to.formatForDisplay();
             try {
                 String destination = sender.send(email);
-                resultLines.add("Sent to " + recipient + " (" + destination + ").");
+                resultLines.add("Sent to " + recipient + ". Delivered as " + destination + ".");
+                anyEmailSent = true;
             } catch (EmailException e) {
                 resultLines.add("FAILED for " + recipient + ": " + e.getMessage());
             }
+        }
+        if (anyEmailSent) {
+            resultLines.add(DELIVERED_NOTE);
         }
         return String.join("\n", resultLines);
     }

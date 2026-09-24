@@ -104,8 +104,9 @@ class SendInviteToolTest {
     void sendsOneEmailPerAttendeeWithInvite() throws Exception {
         String result = buildTool(buildCompleteSettings()).execute(parseArguments(INVITE_ARGUMENTS));
 
-        assertEquals("Sent to Anna Rossi <anna@example.com> (outbox/anna@example.com.eml).\n"
-                + "Sent to Luca Bianchi <luca@example.com> (outbox/luca@example.com.eml).", result);
+        assertEquals("Sent to Anna Rossi <anna@example.com>. Delivered as outbox/anna@example.com.eml.\n"
+                + "Sent to Luca Bianchi <luca@example.com>. Delivered as outbox/luca@example.com.eml.\n"
+                + "The emails are delivered. There is no later sending step.", result);
         assertEquals(2, sender.sentEmails.size());
         Email first = sender.sentEmails.get(0);
         assertEquals("me@example.com", first.from.address);
@@ -122,7 +123,8 @@ class SendInviteToolTest {
         String result = buildTool(buildCompleteSettings()).execute(parseArguments(INVITE_ARGUMENTS));
 
         assertTrue(result.startsWith("FAILED for Anna Rossi <anna@example.com>: Could not write"), result);
-        assertTrue(result.endsWith("Sent to Luca Bianchi <luca@example.com> (outbox/luca@example.com.eml)."), result);
+        assertTrue(result.contains("Sent to Luca Bianchi <luca@example.com>. Delivered as outbox/luca@example.com.eml."),
+                result);
         assertEquals(1, sender.sentEmails.size());
     }
 
