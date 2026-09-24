@@ -73,17 +73,15 @@ class CalendarToolsTest {
     }
 
     @Test
-    void setAppointmentPassesAllowOverlap() throws Exception {
+    void setAppointmentRejectsAnOverlap() throws Exception {
         SetAppointmentTool tool = new SetAppointmentTool(service);
         tool.execute(parseArguments("{'title':'Barber','date':'2026-09-28','startTime':'10:00','leadTimeMinutes':30}"));
 
-        String rejected = tool.execute(parseArguments(
+        String result = tool.execute(parseArguments(
                 "{'title':'Call','date':'2026-09-28','startTime':'10:30','leadTimeMinutes':30}"));
-        String allowed = tool.execute(parseArguments(
-                "{'title':'Call','date':'2026-09-28','startTime':'10:30','leadTimeMinutes':30,'allowOverlap':true}"));
 
-        assertTrue(rejected.startsWith("ERROR: This overlaps A-1 Barber"), rejected);
-        assertEquals("A-2", Json.MAPPER.readTree(allowed).get("id").asText());
+        assertTrue(result.startsWith("ERROR: This overlaps A-1 Barber"), result);
+        assertTrue(result.contains("Overlapping appointments are not allowed."), result);
     }
 
     @Test

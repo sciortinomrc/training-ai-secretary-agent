@@ -214,8 +214,8 @@ All dates are `YYYY-MM-DD`. All times are `HH:mm`. Every tool returns text.
 | `send-draft` | `draftId`* | Writes one email per attendee to `outbox/sent/`, then removes the draft. One result line for each attendee: sent, or the error. If an email fails, the draft is kept. Needs approval (5.1). |
 
 For `set-appointment` and `edit` (double bookings):
-- The same appointment twice (same title, ignoring case, same date and start time) is always rejected: "A-1 already has this appointment… Use edit to change it."
-- An appointment that overlaps another one is rejected with the conflict, for example "This overlaps A-1 Barber appointment on 2026-09-28 10:00-11:00". The model asks the user; only after a yes does it call again with `allowOverlap: true`.
+- The same appointment again (same title, ignoring case, on the same date) is never booked twice. The error names the existing appointment; the model then revises it with `edit` if the user gave new details, or tells the user they already have it.
+- Overlapping appointments are not allowed. The error names the conflict, for example "This overlaps A-1 Barber appointment on 2026-09-28 10:00-11:00", and the model asks the user for another time.
 - An appointment without an end time counts as 60 minutes. Back-to-back appointments do not overlap. For a series, the next 365 days are checked.
 - Edits of one occurrence are not checked for overlaps.
 

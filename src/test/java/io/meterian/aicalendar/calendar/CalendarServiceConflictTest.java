@@ -41,23 +41,21 @@ class CalendarServiceConflictTest {
     }
 
     @Test
-    void sameAppointmentTwiceIsRejected() {
-        assertRejected("A-1 already has this appointment: Barber appointment on 2026-09-28 at 10:00. "
-                        + "Use edit to change it instead of booking it again.",
+    void sameAppointmentAgainPointsToTheExistingOne() {
+        String expected = "A-1 is already this appointment: Barber appointment on 2026-09-28 at 10:00. "
+                + "If the user gave new details, change A-1 with edit. If nothing is different, "
+                + "tell the user they already have it.";
+        assertRejected(expected,
                 () -> service.addAppointment(buildAppointment("barber appointment", MONDAY, LocalTime.of(10, 0))));
+        assertRejected(expected,
+                () -> service.addAppointment(buildAppointment("Barber appointment", MONDAY, LocalTime.of(15, 0))));
     }
 
     @Test
     void overlappingAppointmentIsRejected() {
         assertRejected("This overlaps A-1 Barber appointment on 2026-09-28 10:00-11:00. "
-                        + "Ask the user if both should stay. If yes, call again with allowOverlap true.",
+                        + "Overlapping appointments are not allowed. Ask the user for another time.",
                 () -> service.addAppointment(buildAppointment("Call with Anna", MONDAY, LocalTime.of(10, 30))));
-    }
-
-    @Test
-    void overlapIsBookedWhenAllowed() {
-        assertEquals("A-2",
-                service.addAppointment(buildAppointment("Call with Anna", MONDAY, LocalTime.of(10, 30)), true).id);
     }
 
     @Test
@@ -72,19 +70,27 @@ class CalendarServiceConflictTest {
         service.addAppointment(gym); // A-2
 
         assertRejected("This overlaps A-2 Gym on 2026-10-12 18:00-19:00. "
-                        + "Ask the user if both should stay. If yes, call again with allowOverlap true.",
-                () -> service.addAppointment(buildAppointment("Dentist", LocalDate.of(2026, 10, 12), LocalTime.of(18, 30))));
+                        + "Overlapping appointments are not allowed. Ask the user for another time.",
+                () -> service.addAppointment(
+                        buildAppointment("Dentist", LocalDate.of(2026, 10, 12), LocalTime.of(18, 30))));
     }
 
     @Test
-    void editIntoAnOverlapIsRejectedUnlessAllowed() {
+    void editIntoAnOverlapIsRejected() {
         service.addAppointment(buildAppointment("Lunch", MONDAY, LocalTime.of(12, 0))); // A-2
         ItemChanges changes = new ItemChanges();
         changes.startTime = LocalTime.of(10, 30);
 
         assertRejected("This overlaps A-1 Barber appointment on 2026-09-28 10:00-11:00. "
-                        + "Ask the user if both should stay. If yes, call again with allowOverlap true.",
+                        + "Overlapping appointments are not allowed. Ask the user for another time.",
                 () -> service.editItem("A-2", null, changes));
-        assertEquals(LocalTime.of(10, 30), ((Appointment) service.editItem("A-2", null, changes, true)).startTime);
+    }
+
+    @Test
+    void revisingAnAppointmentDoesNotConflictWithItself() {
+        ItemChanges changes = new ItemChanges();
+        changes.place = "12 Avenue Q";
+
+        assertEquals("12 Avenue Q", ((Appointment) service.editItem("A-1", null, changes)).place);
     }
 }

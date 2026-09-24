@@ -30,14 +30,9 @@ public class CalendarService {
     }
 
     public synchronized Appointment addAppointment(Appointment appointment) {
-        return addAppointment(appointment, false);
-    }
-
-    /** With allowOverlap, the user has agreed to book it although it overlaps another appointment. */
-    public synchronized Appointment addAppointment(Appointment appointment, boolean allowOverlap) {
         return applyChange(() -> {
             validator.validateAppointment(appointment);
-            conflictChecker.requireNoConflicts(appointment, allowOverlap);
+            conflictChecker.requireNoConflicts(appointment);
             repository.insertAppointment(appointment);
             return appointment;
         });
@@ -61,13 +56,7 @@ public class CalendarService {
 
     /** Without occurrenceDate, changes the whole item or series. With it, changes only that occurrence. */
     public synchronized Object editItem(String id, LocalDate occurrenceDate, ItemChanges changes) {
-        return editItem(id, occurrenceDate, changes, false);
-    }
-
-    /** With allowOverlap, the user has agreed to a change that overlaps another appointment. */
-    public synchronized Object editItem(String id, LocalDate occurrenceDate, ItemChanges changes,
-            boolean allowOverlap) {
-        return applyChange(() -> editor.editItem(id, occurrenceDate, changes, allowOverlap));
+        return applyChange(() -> editor.editItem(id, occurrenceDate, changes));
     }
 
     /** Without occurrenceDate, removes the whole item (and an appointment's linked alarms and notes). */

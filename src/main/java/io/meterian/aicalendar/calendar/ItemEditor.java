@@ -35,19 +35,19 @@ class ItemEditor {
     }
 
     /** Without occurrenceDate, changes the whole item or series. With it, changes only that occurrence. */
-    Object editItem(String id, LocalDate occurrenceDate, ItemChanges changes, boolean allowOverlap) {
+    Object editItem(String id, LocalDate occurrenceDate, ItemChanges changes) {
         List<String> changedFields = changes.listChangedFields();
         if (changedFields.isEmpty()) {
             throw new CalendarException("Give at least one field to change.");
         }
         return occurrenceDate == null
-                ? editWholeItem(id, changes, changedFields, allowOverlap)
+                ? editWholeItem(id, changes, changedFields)
                 : editOneOccurrence(id, occurrenceDate, changes, changedFields);
     }
 
-    private Object editWholeItem(String id, ItemChanges changes, List<String> changedFields, boolean allowOverlap) {
+    private Object editWholeItem(String id, ItemChanges changes, List<String> changedFields) {
         if (ItemIds.isAppointmentId(id)) {
-            return editAppointment(id, changes, changedFields, allowOverlap);
+            return editAppointment(id, changes, changedFields);
         }
         if (ItemIds.isAlarmId(id)) {
             return editAlarm(id, changes, changedFields);
@@ -72,8 +72,7 @@ class ItemEditor {
         throw ItemIds.buildUnknownIdError(id);
     }
 
-    private Appointment editAppointment(String id, ItemChanges changes, List<String> changedFields,
-            boolean allowOverlap) {
+    private Appointment editAppointment(String id, ItemChanges changes, List<String> changedFields) {
         requireAllowedFields(changedFields, APPOINTMENT_FIELDS, "an appointment");
         Appointment current = repository.findAppointment(id);
         Appointment updated = Json.copyValue(current, Appointment.class);
@@ -86,7 +85,7 @@ class ItemEditor {
         updated.attendees = pickChangedValue(changes.attendees, updated.attendees);
         updated.repeat = pickChangedValue(changes.repeat, updated.repeat);
         validator.validateAppointment(updated);
-        conflictChecker.requireNoConflicts(updated, allowOverlap);
+        conflictChecker.requireNoConflicts(updated);
         replaceItem(repository.getAppointments(), current, updated);
         return updated;
     }

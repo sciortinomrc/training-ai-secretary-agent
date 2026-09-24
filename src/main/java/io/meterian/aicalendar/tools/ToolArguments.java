@@ -97,18 +97,6 @@ public final class ToolArguments {
         throw new ToolArgumentException(field + " must be a whole number, not '" + value.asText() + "'.");
     }
 
-    /** A missing field counts as false. Accepts true and false, also as text. */
-    public boolean readOptionalBoolean(String field) {
-        if (!hasField(field)) {
-            return false;
-        }
-        String text = node.get(field).asText().trim().toLowerCase(Locale.ROOT);
-        if (text.equals("true") || text.equals("false")) {
-            return text.equals("true");
-        }
-        throw new ToolArgumentException(field + " must be true or false, not '" + node.get(field).asText() + "'.");
-    }
-
     public RepeatRule readOptionalRepeat(String field) {
         if (!hasField(field)) {
             return null;
