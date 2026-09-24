@@ -85,6 +85,16 @@ class CalendarStoreTest {
     }
 
     @Test
+    void saveCreatesMissingFolders() {
+        Path file = tempDir.resolve("new").resolve("folder").resolve("calendar.json");
+        CalendarStore store = new CalendarStore(file);
+
+        store.save(new CalendarData());
+
+        assertTrue(Files.exists(file));
+    }
+
+    @Test
     void badFileThrowsAndIsNotOverwritten() throws Exception {
         Path file = tempDir.resolve("calendar.json");
         Files.writeString(file, "{ not json");

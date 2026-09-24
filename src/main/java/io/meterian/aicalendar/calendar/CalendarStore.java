@@ -6,7 +6,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
-/** Reads and writes calendar.json. A save writes a temporary file first, then moves it over the old file. */
+/**
+ * Reads and writes calendar.json. A save creates missing folders, writes a temporary file first, then moves it
+ * over the old file.
+ */
 public class CalendarStore {
 
     private final Path file;
@@ -30,6 +33,7 @@ public class CalendarStore {
     public void save(CalendarData data) {
         Path temporary = file.resolveSibling(file.getFileName() + ".tmp");
         try {
+            Files.createDirectories(file.toAbsolutePath().getParent());
             Json.MAPPER.writerWithDefaultPrettyPrinter().writeValue(temporary.toFile(), data);
             Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException e) {
