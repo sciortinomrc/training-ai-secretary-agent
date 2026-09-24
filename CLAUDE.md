@@ -2,9 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Status
+## Layout
 
-This project has no code yet. Update this file when the package layout and the test setup exist.
+Base package `io.meterian.aicalendar`:
+
+- `calendar`: data model; `CalendarService` (thread-safe entry point) hands work to `ItemValidator`, `CalendarQueries`, `ItemEditor`, `ItemRemover` and `CalendarRepository`; `OccurrenceExpander` (repeats and overrides); `CalendarStore` (JSON file, atomic save)
+- `chat`: `ChatModel`, `OllamaClient` (hand-written `/api/chat` calls)
+- `agent`: `Agent` (tool-call loop, user approval, 10-round limit), `SystemPrompt`
+- `tools`: one class per tool; `AbstractTool` turns exceptions into `ERROR:` results
+- `alerts`: `AlertScheduler` (background thread, every 30 seconds)
+- `email`: `IcsBuilder`, `EmlFormatter`, `FileEmailSender` (writes `.eml` files to `outbox/`; no email service)
+- `channel`: `UserChannel`, `ConsoleChannel`
+
+A tool returns JSON on success and text that starts with `ERROR:` on failure. It never throws into the agent loop.
 
 ## Build
 
@@ -13,6 +23,8 @@ The project uses Maven.
 - Build: `mvn package`
 - Run all tests: `mvn test`
 - Run one test: `mvn test -Dtest=ClassName#methodName`
+- Start the agent: `mvn -q compile exec:java` (copy `settings.example.properties` to `settings.properties` first)
+- The implementation plan is in `docs/superpowers/plans/2026-09-24-calendar-agent.md`.
 
 ## Purpose
 
