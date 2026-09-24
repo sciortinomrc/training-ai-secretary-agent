@@ -23,7 +23,8 @@ public class SetAppointmentTool extends AbstractTool {
     @Override
     public String getDescription() {
         return "Create an appointment. title, date, startTime and leadTimeMinutes are required. "
-                + "Ask the user for any missing value; never guess it. Returns the new appointment with its id.";
+                + "Derive the title from the request, for example 'Meeting with John Stone'. Ask the user for any "
+                + "other missing value; never guess it. Returns the new appointment with its id.";
     }
 
     @Override

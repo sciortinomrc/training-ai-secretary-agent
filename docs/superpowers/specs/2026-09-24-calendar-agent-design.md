@@ -233,13 +233,15 @@ The code checks every call. A missing required field, a bad date or time, an unk
 The system prompt tells the model to:
 
 1. Call `get-current-date-time` before it turns a relative date ("Wednesday", "tomorrow") into a date.
-2. Never guess a required value. If the title, date or start time is missing, ask the user.
+2. Derive the title from the request, for example "Meeting with John Stone" or "Dentist". Ask for the title only when the request gives no hint. Never guess the date, the start time or an email address: if one is missing, ask the user.
 3. If the user gives no lead time, call `get-default-lead-time` and ask: "Do you want the alert 30 minutes before, or at a different time?"
-4. Ask for a place when the event is probably at a physical place, for example a dentist visit or a meeting. Otherwise, do not ask.
+4. Ask for a place when the event is probably at a physical place, for example a dentist visit. For a meeting, always ask where it is, or if it is online. Otherwise, do not ask for a place.
 5. Before an `edit` or `remove`, use `find-items` to get the ID, show the item to the user, and ask for a yes. If two or more items match, ask which one.
 6. For a series, change only the named occurrence when the request is clear ("cancel gym next Monday"). When it is not clear ("cancel gym Monday"), ask: "Only one Monday, or the whole series?"
 7. To invite attendees, add them to the appointment with `set-appointment` or `edit`. Never guess an email address. Call `get-user-profile` for the signature. Write the email in the tone the user asks for, then call `send-invite`.
-8. Answer in short, plain sentences.
+8. When confirming a change, state only the values in the tool result. If the user gives an end time or a duration, pass `endTime`.
+9. When several values are missing, ask for all of them in one message, as a short numbered list.
+10. Answer in short, plain sentences.
 
 The confirmation in rule 5 is enforced only by the prompt, not by the code.
 
