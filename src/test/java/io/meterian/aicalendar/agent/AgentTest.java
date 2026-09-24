@@ -246,6 +246,20 @@ class AgentTest {
     }
 
     @Test
+    void unexpectedErrorGivesAPlainReplyAndKeepsTheConversation() {
+        ScriptedChatModel model = new ScriptedChatModel()
+                .queueFailure(new IllegalArgumentException("invalid URI scheme"))
+                .queueReply(ChatMessage.buildAssistantMessage("Back"));
+        Agent agent = buildAgent(model, new EchoTool(false));
+
+        String first = agent.handleUserMessage("Hello?");
+        String second = agent.handleUserMessage("Hello again");
+
+        assertTrue(first.startsWith("Something went wrong: invalid URI scheme."), first);
+        assertEquals("Back", second);
+    }
+
+    @Test
     void emptyReplyGivesFallbackText() {
         ChatMessage thinkingOnly = ChatMessage.buildAssistantMessage("");
         thinkingOnly.thinking = "The user wants...";

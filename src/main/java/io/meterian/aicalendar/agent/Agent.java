@@ -46,6 +46,9 @@ public class Agent {
         } catch (ChatModelException e) {
             return "I cannot reach the model: " + e.getMessage()
                     + " Please check that Ollama is running, then try again.";
+        } catch (RuntimeException e) {
+            return "Something went wrong: " + describeError(e)
+                    + ". Please try again. If it happens again, type 'exit' and check settings.properties.";
         }
     }
 
@@ -108,5 +111,10 @@ public class Agent {
 
     private static String readReplyText(ChatMessage reply) {
         return reply.content == null || reply.content.isBlank() ? EMPTY_REPLY : reply.content;
+    }
+
+    /** Some exceptions have no message, for example a NullPointerException. Then the type name is shown. */
+    private static String describeError(RuntimeException error) {
+        return error.getMessage() != null ? error.getMessage() : error.getClass().getSimpleName();
     }
 }
