@@ -68,10 +68,22 @@ class ConsoleChannelTest {
     }
 
     @Test
-    void askYesNoAcceptsOnlyY() {
+    void askYesNoReadsSingleLetterAnswersAndEndOfInput() {
         assertTrue(buildChannel(new StringReader("Y\n")).askYesNo("Approve this action?"));
         assertFalse(buildChannel(new StringReader("no\n")).askYesNo("Approve this action?"));
         assertFalse(buildChannel(new StringReader("")).askYesNo("Approve this action?"));
         assertTrue(readOutput().contains("Approve this action? (y/n) "));
+    }
+
+    @Test
+    void askYesNoAcceptsYesAndNo() {
+        assertTrue(buildChannel(new StringReader("yes\n")).askYesNo("Approve this action?"));
+        assertFalse(buildChannel(new StringReader("No\n")).askYesNo("Approve this action?"));
+    }
+
+    @Test
+    void askYesNoAsksAgainAfterAnUnclearAnswer() {
+        assertTrue(buildChannel(new StringReader("yes, send it\ny\n")).askYesNo("Approve this action?"));
+        assertTrue(readOutput().contains("Please type y or n."));
     }
 }
