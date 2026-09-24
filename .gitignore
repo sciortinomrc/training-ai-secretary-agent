@@ -1,0 +1,5 @@
+target/
+settings.properties
+calendar.json
+calendar.json.tmp
+outbox/
