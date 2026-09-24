@@ -1,5 +1,6 @@
 package io.meterian.aicalendar.calendar;
 
+import io.meterian.aicalendar.Json;
 import java.util.List;
 import java.util.function.Function;
 
@@ -10,7 +11,7 @@ import java.util.function.Function;
 class CalendarRepository {
 
     private final CalendarStore store;
-    private final CalendarData data;
+    private CalendarData data;
 
     CalendarRepository(CalendarStore store, CalendarData data) {
         this.store = store;
@@ -58,6 +59,15 @@ class CalendarRepository {
 
     void saveChanges() {
         store.save(data);
+    }
+
+    /** A deep copy of the current data, to restore when a change fails. */
+    CalendarData takeSnapshot() {
+        return Json.copyValue(data, CalendarData.class);
+    }
+
+    void restoreSnapshot(CalendarData snapshot) {
+        data = snapshot;
     }
 
     private String assignNextId(String prefix) {
