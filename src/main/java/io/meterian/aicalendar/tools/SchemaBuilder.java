@@ -22,6 +22,10 @@ public final class SchemaBuilder {
         return addProperty(name, buildTypedNode("integer", description), isRequired);
     }
 
+    public SchemaBuilder addBoolean(String name, String description, boolean isRequired) {
+        return addProperty(name, buildTypedNode("boolean", description), isRequired);
+    }
+
     public SchemaBuilder addEnum(String name, String description, List<String> values, boolean isRequired) {
         ObjectNode schema = buildTypedNode("string", description);
         schema.set("enum", Json.MAPPER.valueToTree(values));

@@ -43,6 +43,8 @@ public class EditTool extends AbstractTool {
                 .addString("time", "Fixed alarm: new time, HH:mm.", false)
                 .addInteger("minutesBefore", "Linked alarm: new minutes before the appointment.", false)
                 .addString("text", "Note: new text.", false)
+                .addBoolean("allowOverlap",
+                        "Set to true only after the user agreed to book it although it overlaps another appointment.", false)
                 .build();
     }
 
@@ -61,8 +63,8 @@ public class EditTool extends AbstractTool {
         changes.time = arguments.readOptionalTime("time");
         changes.minutesBefore = arguments.readOptionalInteger("minutesBefore");
         changes.text = arguments.readOptionalText("text");
-        Object updated = service.editItem(
-                arguments.readRequiredText("id"), arguments.readOptionalDate("occurrenceDate"), changes);
+        Object updated = service.editItem(arguments.readRequiredText("id"),
+                arguments.readOptionalDate("occurrenceDate"), changes, arguments.readOptionalBoolean("allowOverlap"));
         return Json.writeJson(updated);
     }
 

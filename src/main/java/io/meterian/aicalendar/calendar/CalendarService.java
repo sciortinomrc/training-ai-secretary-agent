@@ -18,18 +18,26 @@ public class CalendarService {
     private final CalendarQueries queries;
     private final ItemEditor editor;
     private final ItemRemover remover;
+    private final ConflictChecker conflictChecker;
 
     public CalendarService(CalendarStore store, CalendarData data, OccurrenceExpander expander, Clock clock) {
         this.repository = new CalendarRepository(store, data);
         this.validator = new ItemValidator(repository, expander);
         this.queries = new CalendarQueries(repository, expander, clock);
-        this.editor = new ItemEditor(repository, validator);
+        this.conflictChecker = new ConflictChecker(repository, expander);
+        this.editor = new ItemEditor(repository, validator, conflictChecker);
         this.remover = new ItemRemover(repository, validator);
     }
 
     public synchronized Appointment addAppointment(Appointment appointment) {
+        return addAppointment(appointment, false);
+    }
+
+    /** With allowOverlap, the user has agreed to book it although it overlaps another appointment. */
+    public synchronized Appointment addAppointment(Appointment appointment, boolean allowOverlap) {
         return applyChange(() -> {
             validator.validateAppointment(appointment);
+            conflictChecker.requireNoConflicts(appointment, allowOverlap);
             repository.insertAppointment(appointment);
             return appointment;
         });
@@ -53,7 +61,13 @@ public class CalendarService {
 
     /** Without occurrenceDate, changes the whole item or series. With it, changes only that occurrence. */
     public synchronized Object editItem(String id, LocalDate occurrenceDate, ItemChanges changes) {
-        return applyChange(() -> editor.editItem(id, occurrenceDate, changes));
+        return editItem(id, occurrenceDate, changes, false);
+    }
+
+    /** With allowOverlap, the user has agreed to a change that overlaps another appointment. */
+    public synchronized Object editItem(String id, LocalDate occurrenceDate, ItemChanges changes,
+            boolean allowOverlap) {
+        return applyChange(() -> editor.editItem(id, occurrenceDate, changes, allowOverlap));
     }
 
     /** Without occurrenceDate, removes the whole item (and an appointment's linked alarms and notes). */

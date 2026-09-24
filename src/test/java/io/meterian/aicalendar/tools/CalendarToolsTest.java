@@ -73,6 +73,20 @@ class CalendarToolsTest {
     }
 
     @Test
+    void setAppointmentPassesAllowOverlap() throws Exception {
+        SetAppointmentTool tool = new SetAppointmentTool(service);
+        tool.execute(parseArguments("{'title':'Barber','date':'2026-09-28','startTime':'10:00','leadTimeMinutes':30}"));
+
+        String rejected = tool.execute(parseArguments(
+                "{'title':'Call','date':'2026-09-28','startTime':'10:30','leadTimeMinutes':30}"));
+        String allowed = tool.execute(parseArguments(
+                "{'title':'Call','date':'2026-09-28','startTime':'10:30','leadTimeMinutes':30,'allowOverlap':true}"));
+
+        assertTrue(rejected.startsWith("ERROR: This overlaps A-1 Barber"), rejected);
+        assertEquals("A-2", Json.MAPPER.readTree(allowed).get("id").asText());
+    }
+
+    @Test
     void setAlarmSupportsBothForms() throws Exception {
         new SetAppointmentTool(service).execute(parseArguments(
                 "{'title':'Dentist','date':'2026-09-30','startTime':'15:00','leadTimeMinutes':30}"));

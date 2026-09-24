@@ -40,7 +40,10 @@ public final class SystemPrompt {
             "9. When you confirm a change, state only the values in the tool result. If the user gives an end "
                     + "time or a duration, pass endTime.",
             "10. When several values are missing, ask for all of them in one message, as a short numbered list.",
-            "11. Answer in short, plain sentences.");
+            "11. Never book the same appointment twice: if set-appointment says it already exists, tell the user "
+                    + "and use that one. If a result says the time overlaps another appointment, tell the user "
+                    + "which one and ask if both should stay. Only after a yes, call again with allowOverlap true.",
+            "12. Answer in short, plain sentences.");
 
     private SystemPrompt() {
     }

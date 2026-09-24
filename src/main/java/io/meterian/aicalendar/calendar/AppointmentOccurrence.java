@@ -6,6 +6,8 @@ import java.time.LocalTime;
 
 /** One dated occurrence of an appointment, with its override already applied. */
 public final class AppointmentOccurrence {
+    public static final int DEFAULT_DURATION_MINUTES = 60;
+
     public final Appointment appointment;
     /** The series date before any move. Overrides use this date as key. */
     public final LocalDate originalDate;
@@ -30,6 +32,11 @@ public final class AppointmentOccurrence {
 
     public LocalDateTime computeStart() {
         return date.atTime(startTime);
+    }
+
+    /** Without an end time, an appointment counts as DEFAULT_DURATION_MINUTES long. */
+    public LocalDateTime computeEnd() {
+        return endTime == null ? computeStart().plusMinutes(DEFAULT_DURATION_MINUTES) : date.atTime(endTime);
     }
 
     public LocalDateTime computeAlertTime() {

@@ -23,6 +23,7 @@ public class SetAppointmentTool extends AbstractTool {
     @Override
     public String getDescription() {
         return "Create an appointment. title, date, startTime and leadTimeMinutes are required. "
+                + "It is rejected when the same appointment already exists, or when it overlaps another one. "
                 + "Derive the title from the request, for example 'Meeting with John Stone'. Ask the user for any "
                 + "other missing value; never guess it. Returns the new appointment with its id.";
     }
@@ -38,6 +39,8 @@ public class SetAppointmentTool extends AbstractTool {
                 .addString("place", "Optional place.", false)
                 .addProperty("repeat", SchemaBuilder.buildRepeatSchema(), false)
                 .addProperty("attendees", SchemaBuilder.buildAttendeesSchema(), false)
+                .addBoolean("allowOverlap",
+                        "Set to true only after the user agreed to book it although it overlaps another appointment.", false)
                 .build();
     }
 
@@ -55,6 +58,6 @@ public class SetAppointmentTool extends AbstractTool {
         if (attendees != null) {
             appointment.attendees = attendees;
         }
-        return Json.writeJson(service.addAppointment(appointment));
+        return Json.writeJson(service.addAppointment(appointment, arguments.readOptionalBoolean("allowOverlap")));
     }
 }

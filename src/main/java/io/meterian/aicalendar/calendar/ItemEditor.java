@@ -26,26 +26,28 @@ class ItemEditor {
 
     private final CalendarRepository repository;
     private final ItemValidator validator;
+    private final ConflictChecker conflictChecker;
 
-    ItemEditor(CalendarRepository repository, ItemValidator validator) {
+    ItemEditor(CalendarRepository repository, ItemValidator validator, ConflictChecker conflictChecker) {
         this.repository = repository;
         this.validator = validator;
+        this.conflictChecker = conflictChecker;
     }
 
     /** Without occurrenceDate, changes the whole item or series. With it, changes only that occurrence. */
-    Object editItem(String id, LocalDate occurrenceDate, ItemChanges changes) {
+    Object editItem(String id, LocalDate occurrenceDate, ItemChanges changes, boolean allowOverlap) {
         List<String> changedFields = changes.listChangedFields();
         if (changedFields.isEmpty()) {
             throw new CalendarException("Give at least one field to change.");
         }
         return occurrenceDate == null
-                ? editWholeItem(id, changes, changedFields)
+                ? editWholeItem(id, changes, changedFields, allowOverlap)
                 : editOneOccurrence(id, occurrenceDate, changes, changedFields);
     }
 
-    private Object editWholeItem(String id, ItemChanges changes, List<String> changedFields) {
+    private Object editWholeItem(String id, ItemChanges changes, List<String> changedFields, boolean allowOverlap) {
         if (ItemIds.isAppointmentId(id)) {
-            return editAppointment(id, changes, changedFields);
+            return editAppointment(id, changes, changedFields, allowOverlap);
         }
         if (ItemIds.isAlarmId(id)) {
             return editAlarm(id, changes, changedFields);
@@ -70,7 +72,8 @@ class ItemEditor {
         throw ItemIds.buildUnknownIdError(id);
     }
 
-    private Appointment editAppointment(String id, ItemChanges changes, List<String> changedFields) {
+    private Appointment editAppointment(String id, ItemChanges changes, List<String> changedFields,
+            boolean allowOverlap) {
         requireAllowedFields(changedFields, APPOINTMENT_FIELDS, "an appointment");
         Appointment current = repository.findAppointment(id);
         Appointment updated = Json.copyValue(current, Appointment.class);
@@ -83,6 +86,7 @@ class ItemEditor {
         updated.attendees = pickChangedValue(changes.attendees, updated.attendees);
         updated.repeat = pickChangedValue(changes.repeat, updated.repeat);
         validator.validateAppointment(updated);
+        conflictChecker.requireNoConflicts(updated, allowOverlap);
         replaceItem(repository.getAppointments(), current, updated);
         return updated;
     }
