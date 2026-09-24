@@ -1,5 +1,6 @@
 package io.meterian.aicalendar.email;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -79,6 +80,26 @@ class IcsBuilderTest {
 
         assertTrue(ics.contains("\r\nRRULE:FREQ=WEEKLY;BYDAY=MO,TH;UNTIL=20261231T225959Z\r\n"));
         assertTrue(ics.contains("\r\nEXDATE;TZID=Europe/Rome:20261005T150000\r\n"));
+    }
+
+    @Test
+    void movedOccurrenceGetsItsOwnEvent() {
+        Appointment appointment = buildDentist();
+        appointment.date = LocalDate.of(2026, 9, 28);
+        appointment.repeat = new RepeatRule(Frequency.WEEKLY, List.of(DayOfWeek.MONDAY), null);
+        OccurrenceChange moved = new OccurrenceChange();
+        moved.date = LocalDate.of(2026, 10, 6);
+        moved.startTime = LocalTime.of(19, 0);
+        moved.endTime = LocalTime.of(19, 30);
+        appointment.overrides.put(LocalDate.of(2026, 10, 5), moved);
+
+        String ics = unfoldLines(builder.buildInvite(appointment, anna, "Marco Rossi", "me@example.com", stamp));
+
+        assertEquals(2, ics.split("BEGIN:VEVENT", -1).length - 1);
+        assertTrue(ics.contains("\r\nRECURRENCE-ID;TZID=Europe/Rome:20261005T150000\r\n"));
+        assertTrue(ics.contains("\r\nDTSTART;TZID=Europe/Rome:20261006T190000\r\n"));
+        assertTrue(ics.contains("\r\nDTEND;TZID=Europe/Rome:20261006T193000\r\n"));
+        assertFalse(ics.contains("EXDATE"));
     }
 
     @Test

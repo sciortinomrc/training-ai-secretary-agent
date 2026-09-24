@@ -5,6 +5,8 @@ import io.meterian.aicalendar.calendar.Attendee;
 import io.meterian.aicalendar.calendar.Frequency;
 import io.meterian.aicalendar.calendar.OccurrenceChange;
 import io.meterian.aicalendar.calendar.RepeatRule;
+import static io.meterian.aicalendar.calendar.ValuePicker.pickChangedValue;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -38,37 +40,76 @@ public class IcsBuilder {
         lines.add("VERSION:2.0");
         lines.add("PRODID:-//ai-calendar//EN");
         lines.add("METHOD:REQUEST");
-        lines.add("BEGIN:VEVENT");
-        lines.add("UID:" + appointment.id + "@ai-calendar");
-        lines.add("DTSTAMP:" + UTC_TIME_FORMAT.format(stamp));
-        addTimeLines(lines, appointment);
-        addDescriptionLines(lines, appointment);
-        addPeopleLines(lines, attendee, organizerName, organizerEmail);
-        addRepeatLines(lines, appointment);
-        lines.add("END:VEVENT");
+        List<String> peopleLines = buildPeopleLines(attendee, organizerName, organizerEmail);
+        addSeriesEvent(lines, appointment, stamp, peopleLines);
+        addChangedOccurrenceEvents(lines, appointment, stamp, peopleLines);
         lines.add("END:VCALENDAR");
         return joinFoldedLines(lines);
     }
 
-    private void addTimeLines(List<String> lines, Appointment appointment) {
-        lines.add("DTSTART" + buildLocalTimeValue(appointment.date, appointment.startTime));
-        if (appointment.endTime != null) {
-            lines.add("DTEND" + buildLocalTimeValue(appointment.date, appointment.endTime));
+    /** The appointment itself; for a series, with its repeat rule and cancelled dates. */
+    private void addSeriesEvent(List<String> lines, Appointment appointment, Instant stamp,
+            List<String> peopleLines) {
+        addEventStart(lines, appointment, stamp);
+        addTimeLines(lines, appointment.date, appointment.startTime, appointment.endTime);
+        addDescriptionLines(lines, appointment.title, appointment.place);
+        lines.addAll(peopleLines);
+        addRepeatLines(lines, appointment);
+        lines.add("END:VEVENT");
+    }
+
+    /**
+     * One extra event for each occurrence that was moved or changed. RECURRENCE-ID names the original occurrence,
+     * so the attendee's calendar replaces it with the changed one.
+     */
+    private void addChangedOccurrenceEvents(List<String> lines, Appointment appointment, Instant stamp,
+            List<String> peopleLines) {
+        if (appointment.repeat == null) {
+            return;
+        }
+        for (Map.Entry<LocalDate, OccurrenceChange> override : appointment.overrides.entrySet()) {
+            OccurrenceChange change = override.getValue();
+            if (Boolean.TRUE.equals(change.cancelled)) {
+                continue;
+            }
+            LocalDate originalDate = override.getKey();
+            addEventStart(lines, appointment, stamp);
+            lines.add("RECURRENCE-ID" + buildLocalTimeValue(originalDate, appointment.startTime));
+            addTimeLines(lines, pickChangedValue(change.date, originalDate),
+                    pickChangedValue(change.startTime, appointment.startTime),
+                    pickChangedValue(change.endTime, appointment.endTime));
+            addDescriptionLines(lines, pickChangedValue(change.title, appointment.title),
+                    pickChangedValue(change.place, appointment.place));
+            lines.addAll(peopleLines);
+            lines.add("END:VEVENT");
         }
     }
 
-    private static void addDescriptionLines(List<String> lines, Appointment appointment) {
-        lines.add("SUMMARY:" + escapeText(appointment.title));
-        if (appointment.place != null) {
-            lines.add("LOCATION:" + escapeText(appointment.place));
+    private static void addEventStart(List<String> lines, Appointment appointment, Instant stamp) {
+        lines.add("BEGIN:VEVENT");
+        lines.add("UID:" + appointment.id + "@ai-calendar");
+        lines.add("DTSTAMP:" + UTC_TIME_FORMAT.format(stamp));
+    }
+
+    private void addTimeLines(List<String> lines, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        lines.add("DTSTART" + buildLocalTimeValue(date, startTime));
+        if (endTime != null) {
+            lines.add("DTEND" + buildLocalTimeValue(date, endTime));
         }
     }
 
-    private static void addPeopleLines(List<String> lines, Attendee attendee, String organizerName,
-            String organizerEmail) {
-        lines.add("ORGANIZER;CN=" + quoteParameter(organizerName) + ":mailto:" + organizerEmail);
-        lines.add("ATTENDEE;CN=" + quoteParameter(attendee.name)
-                + ";ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:" + attendee.email);
+    private static void addDescriptionLines(List<String> lines, String title, String place) {
+        lines.add("SUMMARY:" + escapeText(title));
+        if (place != null) {
+            lines.add("LOCATION:" + escapeText(place));
+        }
+    }
+
+    private static List<String> buildPeopleLines(Attendee attendee, String organizerName, String organizerEmail) {
+        return List.of(
+                "ORGANIZER;CN=" + quoteParameter(organizerName) + ":mailto:" + organizerEmail,
+                "ATTENDEE;CN=" + quoteParameter(attendee.name)
+                        + ";ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:" + attendee.email);
     }
 
     private void addRepeatLines(List<String> lines, Appointment appointment) {
