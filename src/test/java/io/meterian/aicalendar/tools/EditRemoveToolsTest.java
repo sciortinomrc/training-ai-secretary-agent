@@ -3,6 +3,7 @@ package io.meterian.aicalendar.tools;
 import static io.meterian.aicalendar.tools.CalendarToolsTest.buildService;
 import static io.meterian.aicalendar.tools.CalendarToolsTest.parseArguments;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.meterian.aicalendar.Json;
@@ -39,6 +40,14 @@ class EditRemoveToolsTest {
 
         assertEquals("FitLife", updated.get("place").asText());
         assertEquals("Anna Rossi", updated.get("attendees").get(0).get("name").asText());
+    }
+
+    @Test
+    void attendeesDescriptionSaysTheListIsReplaced() {
+        String description = new EditTool(service).buildParametersSchema()
+                .get("properties").get("attendees").get("description").asText();
+
+        assertTrue(description.contains("replaces the current list"), description);
     }
 
     @Test

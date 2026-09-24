@@ -37,7 +37,7 @@ public class EditTool extends AbstractTool {
                 .addString("endTime", "Appointment: new end time, HH:mm.", false)
                 .addString("place", "Appointment: new place.", false)
                 .addInteger("leadTimeMinutes", "Appointment: new alert lead time in minutes.", false)
-                .addProperty("attendees", SchemaBuilder.buildAttendeesSchema(), false)
+                .addProperty("attendees", buildReplacingAttendeesSchema(), false)
                 .addProperty("repeat", SchemaBuilder.buildRepeatSchema(), false)
                 .addString("message", "Alarm: new message.", false)
                 .addString("time", "Fixed alarm: new time, HH:mm.", false)
@@ -64,5 +64,13 @@ public class EditTool extends AbstractTool {
         Object updated = service.editItem(
                 arguments.readRequiredText("id"), arguments.readOptionalDate("occurrenceDate"), changes);
         return Json.writeJson(updated);
+    }
+
+    /** The same attendee list as in set-appointment, but it warns the model that the new list replaces the old one. */
+    private static ObjectNode buildReplacingAttendeesSchema() {
+        ObjectNode schema = SchemaBuilder.buildAttendeesSchema();
+        schema.put("description", "The full new list of attendees. It replaces the current list, so include the "
+                + "people who are already invited.");
+        return schema;
     }
 }
