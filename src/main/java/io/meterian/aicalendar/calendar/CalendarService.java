@@ -13,11 +13,15 @@ public class CalendarService {
     private final CalendarRepository repository;
     private final ItemValidator validator;
     private final CalendarQueries queries;
+    private final ItemEditor editor;
+    private final ItemRemover remover;
 
     public CalendarService(CalendarStore store, CalendarData data, OccurrenceExpander expander, Clock clock) {
         this.repository = new CalendarRepository(store, data);
         this.validator = new ItemValidator(repository, expander);
         this.queries = new CalendarQueries(repository, expander, clock);
+        this.editor = new ItemEditor(repository, validator);
+        this.remover = new ItemRemover(repository, validator);
     }
 
     public synchronized Appointment addAppointment(Appointment appointment) {
@@ -39,6 +43,20 @@ public class CalendarService {
         repository.insertNote(note);
         repository.saveChanges();
         return note;
+    }
+
+    /** Without occurrenceDate, changes the whole item or series. With it, changes only that occurrence. */
+    public synchronized Object editItem(String id, LocalDate occurrenceDate, ItemChanges changes) {
+        Object updatedItem = editor.editItem(id, occurrenceDate, changes);
+        repository.saveChanges();
+        return updatedItem;
+    }
+
+    /** Without occurrenceDate, removes the whole item (and an appointment's linked alarms and notes). */
+    public synchronized List<String> removeItem(String id, LocalDate occurrenceDate) {
+        List<String> removed = remover.removeItem(id, occurrenceDate);
+        repository.saveChanges();
+        return removed;
     }
 
     public synchronized Appointment findAppointment(String id) {
