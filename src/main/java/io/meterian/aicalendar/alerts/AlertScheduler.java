@@ -87,13 +87,24 @@ public class AlertScheduler {
         List<AppointmentOccurrence> occurrences = service.listAppointmentOccurrences(
                 after.toLocalDate(), upTo.toLocalDate().plusDays(LOOKAHEAD_DAYS));
         for (AppointmentOccurrence occurrence : occurrences) {
-            LocalDateTime firesAt = occurrence.computeAlertTime();
-            if (isInWindow(firesAt, after, upTo)) {
-                String key = occurrence.appointment.id + "|" + occurrence.originalDate + "|" + firesAt;
-                alerts.add(new Alert(key, firesAt, formatAppointmentAlert(occurrence, firesAt)));
+            LocalDateTime alertTime = occurrence.computeAlertTime();
+            boolean isDueNow = isInWindow(alertTime, after, upTo);
+            if (isDueNow || isLateButNotStarted(occurrence, alertTime, after)) {
+                LocalDateTime shownTime = isDueNow ? alertTime : upTo;
+                String key = occurrence.appointment.id + "|" + occurrence.originalDate + "|" + alertTime;
+                alerts.add(new Alert(key, shownTime, formatAppointmentAlert(occurrence, shownTime)));
             }
         }
         return alerts;
+    }
+
+    /**
+     * True when the alert time has already passed but the appointment has not started yet, for example an
+     * appointment created 15 minutes before it starts with a 30-minute lead time. It still gets one alert.
+     */
+    private static boolean isLateButNotStarted(AppointmentOccurrence occurrence, LocalDateTime alertTime,
+            LocalDateTime after) {
+        return !alertTime.isAfter(after) && occurrence.computeStart().isAfter(after);
     }
 
     private List<Alert> collectAlarmAlerts(LocalDateTime after, LocalDateTime upTo) {

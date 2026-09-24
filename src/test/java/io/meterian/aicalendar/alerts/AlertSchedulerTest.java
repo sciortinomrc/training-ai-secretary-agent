@@ -125,4 +125,14 @@ class AlertSchedulerTest {
 
         assertTrue(channel.alerts.isEmpty());
     }
+
+    @Test
+    void appointmentCreatedInsideItsLeadTimeAlertsAtTheNextCheck() {
+        addAppointment("Call with Anna", TODAY, LocalTime.of(10, 15), 30);
+
+        checkAt(TODAY.atTime(10, 0, 30));
+        checkAt(TODAY.atTime(10, 1));
+
+        assertEquals(List.of("\u23F0 10:00 Call with Anna at 10:15"), channel.alerts);
+    }
 }
