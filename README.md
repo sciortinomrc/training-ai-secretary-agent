@@ -34,6 +34,16 @@ Open a file with a mail program (Thunderbird, Outlook) to see the email and the 
 
 Type `exit` to quit. Alerts show only while the agent runs.
 
+## See how the agent talks to the LLM
+
+    ./run-side-by-side.sh
+
+This opens tmux with two panes: the chat on the left, and on the right every step between you, the agent and
+the LLM — your message, each request to the LLM, the LLM's thinking and tool calls, each tool result, your
+approvals, and the final reply. Type `exit` in the chat to close both. The trace is also saved in `trace.log`.
+
+Without tmux, set `trace.file=trace.log` in `settings.properties` and run `tail -f trace.log` in a second terminal.
+
 ## Manual test script
 
 Run these requests in order and check each result:

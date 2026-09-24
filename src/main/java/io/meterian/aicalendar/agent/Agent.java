@@ -9,6 +9,8 @@ import io.meterian.aicalendar.chat.ChatModelException;
 import io.meterian.aicalendar.chat.ToolCall;
 import io.meterian.aicalendar.tools.Tool;
 import io.meterian.aicalendar.tools.ToolRegistry;
+import io.meterian.aicalendar.trace.ConversationTrace;
+import io.meterian.aicalendar.trace.SilentConversationTrace;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -29,17 +31,35 @@ public class Agent {
     private final ToolRegistry tools;
     private final UserChannel channel;
     private final String systemPrompt;
+    private final ConversationTrace trace;
     private final List<ChatMessage> conversation = new ArrayList<>();
 
     public Agent(ChatModel model, ToolRegistry tools, UserChannel channel, String systemPrompt) {
+        this(model, tools, channel, systemPrompt, new SilentConversationTrace());
+    }
+
+    public Agent(ChatModel model, ToolRegistry tools, UserChannel channel, String systemPrompt,
+            ConversationTrace trace) {
         this.model = model;
         this.tools = tools;
         this.channel = channel;
         this.systemPrompt = systemPrompt;
+        this.trace = trace;
     }
 
     public String handleUserMessage(String text) {
+        trace.recordUserMessage(text);
         conversation.add(ChatMessage.buildUserMessage(text));
+        String reply = answerUserMessage();
+        trace.recordAgentReply(reply);
+        return reply;
+    }
+
+    public List<ChatMessage> getConversation() {
+        return Collections.unmodifiableList(conversation);
+    }
+
+    private String answerUserMessage() {
         try {
             return runToolLoop();
         } catch (ChatModelException e) {
@@ -51,13 +71,13 @@ public class Agent {
         }
     }
 
-    public List<ChatMessage> getConversation() {
-        return Collections.unmodifiableList(conversation);
-    }
-
     private String runToolLoop() {
         for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
-            ChatMessage reply = model.requestReply(buildRequestMessages(), tools.buildToolDefinitions());
+            List<ChatMessage> messages = buildRequestMessages();
+            List<JsonNode> toolDefinitions = tools.buildToolDefinitions();
+            trace.recordModelRequest(messages.size(), toolDefinitions.size());
+            ChatMessage reply = model.requestReply(messages, toolDefinitions);
+            trace.recordModelReply(reply);
             conversation.add(reply);
             if (!reply.hasToolCalls()) {
                 return readReplyText(reply);
@@ -77,6 +97,7 @@ public class Agent {
     private void runToolCalls(List<ToolCall> toolCalls) {
         for (ToolCall toolCall : toolCalls) {
             String result = runToolCall(toolCall);
+            trace.recordToolResult(toolCall.function.name, readArguments(toolCall), result);
             conversation.add(ChatMessage.buildToolResultMessage(toolCall.function.name, result));
         }
     }
@@ -99,7 +120,9 @@ public class Agent {
 
     private boolean askUserForApproval(Tool tool, JsonNode arguments) {
         channel.printReply(tool.describeCall(arguments));
-        return channel.askYesNo(tool.getApprovalQuestion());
+        boolean approved = channel.askYesNo(tool.getApprovalQuestion());
+        trace.recordApproval(tool.getApprovalQuestion(), approved);
+        return approved;
     }
 
     /** A model can send a tool call without arguments. The tool then gets an empty object. */

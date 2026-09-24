@@ -30,6 +30,9 @@ import io.meterian.aicalendar.tools.SendDraftTool;
 import io.meterian.aicalendar.tools.SetAlarmTool;
 import io.meterian.aicalendar.tools.SetAppointmentTool;
 import io.meterian.aicalendar.tools.ToolRegistry;
+import io.meterian.aicalendar.trace.ConversationTrace;
+import io.meterian.aicalendar.trace.FileConversationTrace;
+import io.meterian.aicalendar.trace.SilentConversationTrace;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -88,7 +91,15 @@ public final class Main {
         OllamaClient model = new OllamaClient(HttpClient.newHttpClient(),
                 URI.create(settings.readValue("ollama.url", "http://localhost:11434")),
                 settings.readValue("ollama.model", "gpt-oss:120b-cloud"));
-        return new Agent(model, buildToolRegistry(service, settings, clock), channel, SystemPrompt.TEXT);
+        return new Agent(model, buildToolRegistry(service, settings, clock), channel, SystemPrompt.TEXT,
+                buildConversationTrace(settings, clock));
+    }
+
+    /** With the trace.file setting, every step between you, the agent and the LLM is written to that file. */
+    private static ConversationTrace buildConversationTrace(Settings settings, Clock clock) {
+        return settings.findValue("trace.file")
+                .<ConversationTrace>map(traceFile -> new FileConversationTrace(Paths.get(traceFile), clock))
+                .orElseGet(SilentConversationTrace::new);
     }
 
     private static ToolRegistry buildToolRegistry(CalendarService service, Settings settings, Clock clock) {

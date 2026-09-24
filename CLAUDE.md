@@ -13,6 +13,7 @@ Base package `io.meterian.aicalendar`:
 - `alerts`: `AlertScheduler` (background thread, every 30 seconds)
 - `email`: `IcsBuilder`, `EmlFormatter`, `DraftFolder` (`outbox/drafts/`), `FileEmailSender` (`outbox/sent/`); `.eml` files only, no email service
 - `channel`: `UserChannel`, `ConsoleChannel`
+- `trace`: `ConversationTrace` (each step between user, agent and LLM), `FileConversationTrace` (setting `trace.file`), `SilentConversationTrace`; `run-side-by-side.sh` shows chat and trace in tmux
 
 A tool returns JSON on success and text that starts with `ERROR:` on failure. It never throws into the agent loop.
 

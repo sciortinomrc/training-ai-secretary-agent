@@ -162,6 +162,7 @@ Terminal ──► ConsoleChannel ──► Agent ──► OllamaClient ──�
 | `profile.name`, `profile.surname`, `profile.role`, `profile.company` | none | Used to sign emails |
 | `profile.email` | none | Sender address of the invitations |
 | `outbox.folder` | `outbox` | Root folder of the `drafts/` and `sent/` buckets |
+| `trace.file` | none | When set, every step between the user, the agent and the LLM is written to this file |
 
 `settings.properties` holds personal data. It must not go into version control. The project has a `settings.example.properties` with empty values.
 
@@ -232,6 +233,12 @@ For `draft-invite` and `send-draft`:
 - The email is sent only when the user asks for it. Creating an appointment with attendees, or saving a draft, sends nothing.
 
 The code checks every call. A missing required field, a bad date or time, an unknown ID, or a field that does not fit the item type gives an `ERROR:` result.
+
+## 6.1 Conversation trace
+
+`Agent` reports each step to a `ConversationTrace`: the user message, each request to the LLM (message and tool counts), each LLM reply (thinking, tool calls or text), each approval, each tool result, and the final reply. `FileConversationTrace` writes one colored, timestamped line per step (long text is cut after 400 characters); a trace that cannot be written prints one warning and never stops the chat. Without `trace.file`, `SilentConversationTrace` records nothing.
+
+`run-side-by-side.sh` opens tmux with the chat on the left and `tail -f trace.log` on the right.
 
 ## 7. Alerts
 

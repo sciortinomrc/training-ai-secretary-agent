@@ -3,3 +3,4 @@ settings.properties
 calendar.json
 calendar.json.tmp
 outbox/
+trace.log

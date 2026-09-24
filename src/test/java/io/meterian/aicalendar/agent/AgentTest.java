@@ -14,6 +14,7 @@ import io.meterian.aicalendar.chat.ToolCall;
 import io.meterian.aicalendar.tools.SchemaBuilder;
 import io.meterian.aicalendar.tools.Tool;
 import io.meterian.aicalendar.tools.ToolRegistry;
+import io.meterian.aicalendar.trace.RecordingConversationTrace;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -275,6 +276,28 @@ class AgentTest {
 
         assertTrue(first.startsWith("Something went wrong: invalid URI scheme."), first);
         assertEquals("Back", second);
+    }
+
+    @Test
+    void traceRecordsEveryStepInOrder() throws Exception {
+        RecordingConversationTrace trace = new RecordingConversationTrace();
+        channel.answers.add(true);
+        ScriptedChatModel model = new ScriptedChatModel()
+                .queueReply(buildToolCallReply("echo", "{'text':'hi'}"))
+                .queueReply(ChatMessage.buildAssistantMessage("Done"));
+        Agent agent = new Agent(model, new ToolRegistry(List.of(new EchoTool(true))), channel, SYSTEM_PROMPT, trace);
+
+        agent.handleUserMessage("Echo hi");
+
+        assertEquals(List.of(
+                "user: Echo hi",
+                "request: 2 messages, 1 tools",
+                "reply: tool echo",
+                "approval: Approve this action? yes",
+                "tool: echo {\"text\":\"hi\"} -> echo:hi",
+                "request: 4 messages, 1 tools",
+                "reply: text Done",
+                "agent: Done"), trace.steps);
     }
 
     @Test
