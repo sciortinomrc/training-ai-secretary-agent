@@ -1,0 +1,26 @@
+package io.meterian.aicalendar.tools;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+/** A tool that the model can call. execute never throws: it returns JSON, or text that starts with "ERROR:". */
+public interface Tool {
+
+    String getName();
+
+    String getDescription();
+
+    ObjectNode buildParametersSchema();
+
+    String execute(JsonNode arguments);
+
+    /** True when the agent loop must ask the user before it runs this tool. */
+    default boolean requiresApproval() {
+        return false;
+    }
+
+    /** The text that the user sees before approving a call. It may throw if the arguments are bad. */
+    default String describeCall(JsonNode arguments) {
+        return getName() + " " + arguments;
+    }
+}
