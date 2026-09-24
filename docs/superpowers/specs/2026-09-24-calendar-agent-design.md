@@ -242,7 +242,7 @@ The code checks every call. A missing required field, a bad date or time, an unk
 The system prompt tells the model to:
 
 1. Call `get-current-date-time` before it turns a relative date ("Wednesday", "tomorrow") into a date.
-2. Derive the title from the request, for example "Meeting with John Stone" or "Dentist". Ask for the title only when the request gives no hint. Never guess the date, the start time or an email address: if one is missing, ask the user.
+2. Derive the title from the request, for example "Meeting with John Stone" or "Dentist". Ask for the title only when the request gives no hint. Never guess the date, the start time or an email address: if one is missing, ask the user. Taking a value from context is not guessing: when the user says "also", "that day" or "before the meeting", use the date of the appointment just discussed, or, when the conversation does not show it, of the newest appointment (`find-items`). Always say which date was used.
 3. If the user gives no lead time, call `get-default-lead-time` and ask: "Do you want the alert 30 minutes before, or at a different time?"
 4. Ask for a place when the event is probably at a physical place, for example a dentist visit. For a meeting, always ask where it is, or if it is online. Otherwise, do not ask for a place.
 5. Before an `edit` or `remove`, use `find-items` to get the ID, show the item to the user, and ask for a yes. If two or more items match, ask which one.

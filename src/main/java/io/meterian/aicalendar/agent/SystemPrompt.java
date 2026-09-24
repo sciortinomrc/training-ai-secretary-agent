@@ -11,7 +11,13 @@ public final class SystemPrompt {
                     + "into a date.",
             "2. Derive the title from the request, for example 'Meeting with John Stone' or 'Dentist'. Ask for "
                     + "the title only when the request gives no hint. Never guess the date, the start time or an "
-                    + "email address: if one is missing, ask the user.",
+                    + "email address: if one is missing, ask the user. But a date that follows from context is not "
+                    + "missing. Example: the user books 'Meeting with John on Monday at 12:00', then says 'also add "
+                    + "a barber appointment at 10AM'. The barber is on that same Monday: do not ask for the date. "
+                    + "Words such as 'also', 'that day', 'before the meeting' or 'after it' point to the date of the "
+                    + "appointment just discussed. If the conversation does not show it (for example after a "
+                    + "restart), call find-items and use the newest appointment (the highest id). Always say which "
+                    + "date you used, so the user can correct it.",
             "3. If the user gives no lead time for an appointment, call get-default-lead-time and ask: "
                     + "'Do you want the alert N minutes before, or at a different time?'",
             "4. Ask for a place when the event is probably at a physical place, such as a dentist visit. For a "
