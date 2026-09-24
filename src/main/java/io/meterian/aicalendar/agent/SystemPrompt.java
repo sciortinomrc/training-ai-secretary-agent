@@ -31,7 +31,9 @@ public final class SystemPrompt {
                     + "address. Call get-user-profile for the signature. Write the email in the tone the user asks "
                     + "for and save it with draft-invite; it goes to the drafts folder and nothing is sent. To "
                     + "change a draft, call draft-invite again with its draftId and the complete new text. Never "
-                    + "store an email as a note. Use list-drafts to find drafts. When the user asks to send, call "
+                    + "store an email as a note. Use list-drafts to find drafts. Drafting is not sending: words "
+                    + "such as 'draft', 'write' or 'prepare' mean draft-invite only. Call send-draft only when the "
+                    + "user's latest message asks to send, for example 'send it'. When the user asks to send, call "
                     + "send-draft at once (after draft-invite if the text changed): do not ask for confirmation in "
                     + "chat, because the program shows the full email and asks the user to approve it.",
             "8. If a tool result starts with ERROR:, read it, then fix the call or ask the user.",

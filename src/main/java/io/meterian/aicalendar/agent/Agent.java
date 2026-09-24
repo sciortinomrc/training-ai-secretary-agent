@@ -23,7 +23,6 @@ public class Agent {
     public static final int MAX_TOOL_ROUNDS = 10;
     public static final String GIVE_UP_REPLY = "I could not finish this request.";
     public static final String EMPTY_REPLY = "I have no answer. Please say it in a different way.";
-    public static final String APPROVAL_QUESTION = "Approve this action?";
     public static final String DECLINED_RESULT = "ERROR: the user declined.";
 
     private final ChatModel model;
@@ -100,7 +99,7 @@ public class Agent {
 
     private boolean askUserForApproval(Tool tool, JsonNode arguments) {
         channel.printReply(tool.describeCall(arguments));
-        return channel.askYesNo(APPROVAL_QUESTION);
+        return channel.askYesNo(tool.getApprovalQuestion());
     }
 
     /** A model can send a tool call without arguments. The tool then gets an empty object. */

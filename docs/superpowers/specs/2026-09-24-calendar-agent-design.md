@@ -180,7 +180,7 @@ If the profile values are missing, the agent still starts. Only `get-user-profil
 A tool can mark itself as "needs approval" (`Tool.requiresApproval()`). Before the loop runs such a tool, it:
 
 1. Asks the tool for a text that shows what it will do (`Tool.describeCall(arguments)`). For `send-draft`, this is the stored invitation data (title, date, time, place, repeat) and the full email for each attendee: recipient, subject and text.
-2. Prints that text and asks `Approve this action? (y/n)` through `UserChannel`.
+2. Prints that text and asks the tool's own question (`Tool.getApprovalQuestion()`, default `Approve this action?`) through `UserChannel`, with `(y/n)`. For `send-draft`, the question is `Send this email now?`, so it is clear that yes sends the email.
 3. Runs the tool only after `y`. After any other answer, it returns `ERROR: the user declined.` to the model.
 
 The model cannot skip this step, because the code runs it, not the prompt. Only `send-draft` needs approval.
@@ -247,7 +247,7 @@ The system prompt tells the model to:
 4. Ask for a place when the event is probably at a physical place, for example a dentist visit. For a meeting, always ask where it is, or if it is online. Otherwise, do not ask for a place.
 5. Before an `edit` or `remove`, use `find-items` to get the ID, show the item to the user, and ask for a yes. If two or more items match, ask which one.
 6. For a series, change only the named occurrence when the request is clear ("cancel gym next Monday"). When it is not clear ("cancel gym Monday"), ask: "Only one Monday, or the whole series?"
-7. To invite attendees, add them to the appointment with `set-appointment` or `edit`. Never guess an email address. Call `get-user-profile` for the signature. Write the email in the tone the user asks for and save it with `draft-invite`. To change a draft, call `draft-invite` again with its `draftId` and the complete new text. Never store an email as a note. Use `list-drafts` to find drafts. When the user asks to send, call `send-draft` at once (after `draft-invite` if the text changed). Do not ask for confirmation in chat: the approval step (5.1) is the only confirmation.
+7. To invite attendees, add them to the appointment with `set-appointment` or `edit`. Never guess an email address. Call `get-user-profile` for the signature. Write the email in the tone the user asks for and save it with `draft-invite`. To change a draft, call `draft-invite` again with its `draftId` and the complete new text. Never store an email as a note. Use `list-drafts` to find drafts. Drafting is not sending: "draft", "write" or "prepare" mean `draft-invite` only, and `send-draft` is called only when the user's latest message asks to send. When the user asks to send, call `send-draft` at once (after `draft-invite` if the text changed). Do not ask for confirmation in chat: the approval step (5.1) is the only confirmation.
 8. When confirming a change, state only the values in the tool result. If the user gives an end time or a duration, pass `endTime`.
 9. When several values are missing, ask for all of them in one message, as a short numbered list.
 10. Answer in short, plain sentences.

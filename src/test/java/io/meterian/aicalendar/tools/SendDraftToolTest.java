@@ -75,6 +75,11 @@ class SendDraftToolTest {
     }
 
     @Test
+    void approvalQuestionSaysThatYesSendsTheEmail() {
+        assertEquals("Send this email now?", buildTool().getApprovalQuestion());
+    }
+
+    @Test
     void describeCallShowsTheInvitationDetailsAndEveryEmail() throws Exception {
         String preview = buildTool().describeCall(parseArguments(SEND_FIRST_DRAFT));
 

@@ -209,8 +209,26 @@ class AgentTest {
         buildAgent(model, tool).handleUserMessage("Send it");
 
         assertEquals(List.of("I will echo invite"), channel.replies);
-        assertEquals(List.of(Agent.APPROVAL_QUESTION), channel.questions);
+        assertEquals(List.of("Approve this action?"), channel.questions);
         assertEquals(1, tool.executions);
+    }
+
+    @Test
+    void toolCanAskItsOwnApprovalQuestion() throws Exception {
+        EchoTool tool = new EchoTool(true) {
+            @Override
+            public String getApprovalQuestion() {
+                return "Send this email now?";
+            }
+        };
+        channel.answers.add(true);
+        ScriptedChatModel model = new ScriptedChatModel()
+                .queueReply(buildToolCallReply("echo", "{'text':'invite'}"))
+                .queueReply(ChatMessage.buildAssistantMessage("Sent"));
+
+        buildAgent(model, tool).handleUserMessage("Send it");
+
+        assertEquals(List.of("Send this email now?"), channel.questions);
     }
 
     @Test

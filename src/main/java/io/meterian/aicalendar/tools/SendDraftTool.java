@@ -57,6 +57,12 @@ public class SendDraftTool extends AbstractTool {
         return true;
     }
 
+    /** Says plainly that "yes" sends the email, so nobody sends a draft by answering out of habit. */
+    @Override
+    public String getApprovalQuestion() {
+        return "Send this email now?";
+    }
+
     @Override
     public String describeCall(JsonNode arguments) {
         Draft draft = service.findDraft(new ToolArguments(arguments).readRequiredText("draftId"));

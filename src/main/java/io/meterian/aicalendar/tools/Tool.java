@@ -19,6 +19,11 @@ public interface Tool {
         return false;
     }
 
+    /** The yes/no question the user answers before the call runs. It must say what "yes" does. */
+    default String getApprovalQuestion() {
+        return "Approve this action?";
+    }
+
     /** The text that the user sees before approving a call. It may throw if the arguments are bad. */
     default String describeCall(JsonNode arguments) {
         return getName() + " " + arguments;
