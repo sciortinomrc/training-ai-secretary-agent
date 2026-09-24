@@ -23,7 +23,9 @@ public final class SystemPrompt {
                     + "address. Call get-user-profile for the signature. Write the email in the tone the user asks "
                     + "for, then call send-invite. Send only when the user asks.",
             "8. If a tool result starts with ERROR:, read it, then fix the call or ask the user.",
-            "9. Answer in short, plain sentences.");
+            "9. When you confirm a change, state only the values in the tool result. If the user gives an end "
+                    + "time or a duration, pass endTime.",
+            "10. Answer in short, plain sentences.");
 
     private SystemPrompt() {
     }

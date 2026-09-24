@@ -90,6 +90,17 @@ class SendInviteToolTest {
     }
 
     @Test
+    void describeCallShowsTheStoredInvitationDetails() throws Exception {
+        String preview = buildTool(buildCompleteSettings()).describeCall(parseArguments(INVITE_ARGUMENTS));
+
+        assertTrue(preview.contains("Title: Business meeting"), preview);
+        assertTrue(preview.contains("Date: 2026-09-30"), preview);
+        assertTrue(preview.contains("Time: 10:00, no end time"), preview);
+        assertTrue(preview.contains("Place: Our office"), preview);
+        assertTrue(preview.contains("Repeats: no"), preview);
+    }
+
+    @Test
     void sendsOneEmailPerAttendeeWithInvite() throws Exception {
         String result = buildTool(buildCompleteSettings()).execute(parseArguments(INVITE_ARGUMENTS));
 

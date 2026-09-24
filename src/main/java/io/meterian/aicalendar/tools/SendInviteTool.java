@@ -7,6 +7,7 @@ import io.meterian.aicalendar.calendar.Appointment;
 import io.meterian.aicalendar.calendar.Attendee;
 import io.meterian.aicalendar.calendar.CalendarException;
 import io.meterian.aicalendar.calendar.CalendarService;
+import io.meterian.aicalendar.calendar.RepeatRule;
 import io.meterian.aicalendar.email.Email;
 import io.meterian.aicalendar.email.EmailAddress;
 import io.meterian.aicalendar.email.EmailAttachment;
@@ -16,6 +17,8 @@ import io.meterian.aicalendar.email.IcsBuilder;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 /** Builds one invitation email per attendee of an appointment and hands each one to the EmailSender. */
 public class SendInviteTool extends AbstractTool {
@@ -66,10 +69,14 @@ public class SendInviteTool extends AbstractTool {
         return true;
     }
 
+    /** Shows the stored invitation data first, so the user approves what the attendees get, then each email. */
     @Override
     public String describeCall(JsonNode arguments) {
-        StringBuilder preview = new StringBuilder();
-        for (Email email : buildEmails(new ToolArguments(arguments))) {
+        ToolArguments toolArguments = new ToolArguments(arguments);
+        List<Email> emails = buildEmails(toolArguments);
+        Appointment appointment = service.findAppointment(toolArguments.readRequiredText("appointmentId"));
+        StringBuilder preview = new StringBuilder(describeInvitation(appointment));
+        for (Email email : emails) {
             preview.append("From: ").append(email.from.formatForDisplay()).append("\n")
                     .append("To: ").append(email.to.formatForDisplay()).append("\n")
                     .append("Subject: ").append(email.subject).append("\n\n")
@@ -112,6 +119,32 @@ public class SendInviteTool extends AbstractTool {
                     new EmailAttachment(INVITE_FILE_NAME, INVITE_CONTENT_TYPE, invite)));
         }
         return emails;
+    }
+
+    private static String describeInvitation(Appointment appointment) {
+        String time = appointment.endTime == null
+                ? appointment.startTime + ", no end time"
+                : appointment.startTime + " to " + appointment.endTime;
+        return "Invitation details (from the calendar):\n"
+                + "  Title: " + appointment.title + "\n"
+                + "  Date: " + appointment.date + "\n"
+                + "  Time: " + time + "\n"
+                + "  Place: " + (appointment.place == null ? "none" : appointment.place) + "\n"
+                + "  Repeats: " + describeRepeat(appointment.repeat) + "\n"
+                + "----------\n";
+    }
+
+    /** For example "weekly on MONDAY, THURSDAY until 2026-12-31", or "no". */
+    private static String describeRepeat(RepeatRule rule) {
+        if (rule == null) {
+            return "no";
+        }
+        String frequency = rule.frequency.name().toLowerCase(Locale.ROOT);
+        String days = rule.daysOfWeek == null || rule.daysOfWeek.isEmpty()
+                ? ""
+                : " on " + rule.daysOfWeek.stream().map(Enum::name).collect(Collectors.joining(", "));
+        String until = rule.until == null ? "" : " until " + rule.until;
+        return frequency + days + until;
     }
 
     private void requireProfileSettings() {
