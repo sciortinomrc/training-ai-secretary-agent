@@ -56,6 +56,13 @@ class ItemValidator {
         }
     }
 
+    void validateDraft(Draft draft) {
+        requireText(draft.appointmentId, "appointmentId");
+        repository.findAppointment(draft.appointmentId);
+        requireText(draft.subject, "subject");
+        requireText(draft.body, "body");
+    }
+
     /** Checks one occurrence of an appointment as it will be after the change. */
     void validateAppointmentOccurrence(Appointment appointment, OccurrenceChange change) {
         requireEndAfterStart(pickChangedValue(change.startTime, appointment.startTime),

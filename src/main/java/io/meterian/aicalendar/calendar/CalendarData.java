@@ -7,9 +7,10 @@ import java.util.TreeMap;
 
 /** Everything in calendar.json. */
 public class CalendarData {
-    /** Next number for each ID prefix: A, L, N. */
+    /** Next number for each ID prefix: A, L, N, D. */
     public Map<String, Integer> nextIds = new TreeMap<>();
     public List<Appointment> appointments = new ArrayList<>();
     public List<Alarm> alarms = new ArrayList<>();
     public List<Note> notes = new ArrayList<>();
+    public List<Draft> drafts = new ArrayList<>();
 }

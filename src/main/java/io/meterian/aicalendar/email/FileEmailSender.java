@@ -9,19 +9,19 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Writes each email as a .eml file in the outbox folder. It takes the place of an SMTP server, so no email
+ * Writes each sent email as a .eml file in the sent folder. It takes the place of an SMTP server, so no email
  * leaves the computer.
  */
 public class FileEmailSender implements EmailSender {
 
     private static final DateTimeFormatter FILE_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
-    private final Path outboxFolder;
+    private final Path sentFolder;
     private final EmlFormatter formatter;
     private final Clock clock;
 
-    public FileEmailSender(Path outboxFolder, EmlFormatter formatter, Clock clock) {
-        this.outboxFolder = outboxFolder;
+    public FileEmailSender(Path sentFolder, EmlFormatter formatter, Clock clock) {
+        this.sentFolder = sentFolder;
         this.formatter = formatter;
         this.clock = clock;
     }
@@ -32,7 +32,7 @@ public class FileEmailSender implements EmailSender {
         ZonedDateTime sentAt = ZonedDateTime.now(clock);
         Path file = chooseFreeFilePath(sentAt, email.to.address);
         try {
-            Files.createDirectories(outboxFolder);
+            Files.createDirectories(sentFolder);
             Files.writeString(file, formatter.formatEmail(email, sentAt), StandardCharsets.UTF_8);
             return file.toString();
         } catch (IOException e) {
@@ -41,12 +41,13 @@ public class FileEmailSender implements EmailSender {
         }
     }
 
-    /** For example outbox/20260924-100000-anna_example.com.eml, then -2, -3 ... when the name is taken. */
+    /** For example outbox/sent/20260924-100000-anna_example.com.eml, then -2, -3 ... when the name is taken. */
     private Path chooseFreeFilePath(ZonedDateTime sentAt, String recipientAddress) {
-        String baseName = FILE_TIME_FORMAT.format(sentAt) + "-" + recipientAddress.replaceAll("[^A-Za-z0-9.-]", "_");
-        Path file = outboxFolder.resolve(baseName + ".eml");
+        String baseName = FILE_TIME_FORMAT.format(sentAt) + "-"
+                + EmailFileNames.convertAddressToFileNamePart(recipientAddress);
+        Path file = sentFolder.resolve(baseName + ".eml");
         for (int copyNumber = 2; Files.exists(file); copyNumber++) {
-            file = outboxFolder.resolve(baseName + "-" + copyNumber + ".eml");
+            file = sentFolder.resolve(baseName + "-" + copyNumber + ".eml");
         }
         return file;
     }

@@ -23,7 +23,7 @@ This is a training exercise. The main goal is to learn how an LLM uses tools. Fo
 | User interface | Terminal only. A UI comes later. |
 | Users | One user, one calendar, no login |
 | Time zone | The system default time zone |
-| Email | No email service. Each email is written as a `.eml` file in an outbox folder, which takes the place of an SMTP server. It only shows the capability. |
+| Email | No email service. The outbox folder has two buckets: `drafts/` and `sent/`. Each email is a `.eml` file; writing it to `sent/` takes the place of an SMTP server. It only shows the capability. |
 | Settings | `settings.properties` in the working directory |
 
 ### 2.1 Code quality
@@ -89,21 +89,25 @@ An alarm has one of two forms. The code rejects an alarm that has both forms or 
 - Any other field replaces the series value for that one occurrence. The fields that can change are `date`, `startTime`, `endTime`, `place`, `title`, `leadTimeMinutes` for appointments, and `date`, `time`, `message` for fixed alarms.
 - A moved occurrence shows on its new date, not on its original date.
 
-### 3.6 User profile
+### 3.6 Email draft
+
+An invitation email that is not sent yet: `id` (for example `D-1`), `appointmentId`, `subject`, `body`. All fields are required, and the appointment must exist. Drafts are stored in `calendar.json`; the `.eml` files in `outbox/drafts/` are built from them. Sending a draft removes it.
+
+### 3.7 User profile
 
 The user's `name`, `surname`, `role` and `company` come from `settings.properties` (section 4.1). The model uses them to sign emails. It never guesses them. The user's `email` is the sender address of the invitations.
 
-### 3.7 IDs
+### 3.8 IDs
 
-The code makes each ID from a prefix and a counter: `A-` for appointments, `L-` for alarms, `N-` for notes. The file stores the counters. IDs are short, so the model can copy them without errors.
+The code makes each ID from a prefix and a counter: `A-` for appointments, `L-` for alarms, `N-` for notes, `D-` for email drafts. The file stores the counters. IDs are short, so the model can copy them without errors.
 
-### 3.8 File
+### 3.9 File
 
 Default path: `calendar.json` in the working directory. The system property `-Dcalendar.file=<path>` changes it.
 
 ```json
 {
-  "nextIds": { "A": 3, "L": 2, "N": 1 },
+  "nextIds": { "A": 3, "L": 2, "N": 1, "D": 1 },
   "appointments": [ ... ],
   "alarms": [ ... ],
   "notes": [ ... ]
@@ -138,7 +142,9 @@ Terminal ──► ConsoleChannel ──► Agent ──► OllamaClient ──�
 | `AlertScheduler` | Background thread that prints due alerts (section 7) |
 | `EmailSender` | Interface: deliver one email and say where it went. A real SMTP sender can replace the file sender later. |
 | `EmlFormatter` | Formats one email as standard `.eml` text (headers, text part, `.ics` attachment) |
-| `FileEmailSender` | `EmailSender` that writes each email as a `.eml` file in the outbox folder |
+| `FileEmailSender` | `EmailSender` that writes each sent email as a `.eml` file in `outbox/sent/` |
+| `DraftFolder` | Writes and deletes the `.eml` files of each draft in `outbox/drafts/` (for example `D-1-john_example.com.eml`) |
+| `InviteEmailBuilder` | Builds the invitation emails of an appointment (one per attendee, `.ics` attached) and the approval preview |
 | `IcsBuilder` | Builds the `.ics` invitation text for one appointment |
 | `Main` | Reads settings, connects the parts, starts the terminal loop |
 
@@ -155,11 +161,11 @@ Terminal ──► ConsoleChannel ──► Agent ──► OllamaClient ──�
 | `calendar.file` | `calendar.json` | |
 | `profile.name`, `profile.surname`, `profile.role`, `profile.company` | none | Used to sign emails |
 | `profile.email` | none | Sender address of the invitations |
-| `outbox.folder` | `outbox` | Folder for the `.eml` files |
+| `outbox.folder` | `outbox` | Root folder of the `drafts/` and `sent/` buckets |
 
 `settings.properties` holds personal data. It must not go into version control. The project has a `settings.example.properties` with empty values.
 
-If the profile values are missing, the agent still starts. Only `get-user-profile` and `send-invite` return `ERROR:` results that name the missing keys.
+If the profile values are missing, the agent still starts. Only `get-user-profile`, `draft-invite` and `send-draft` return `ERROR:` results that name the missing keys.
 
 ## 5. Agent loop
 
@@ -173,11 +179,11 @@ If the profile values are missing, the agent still starts. Only `get-user-profil
 
 A tool can mark itself as "needs approval" (`Tool.requiresApproval()`). Before the loop runs such a tool, it:
 
-1. Asks the tool for a text that shows what it will do (`Tool.describeCall(arguments)`). For `send-invite`, this is the full email for each attendee: recipient, subject and text.
+1. Asks the tool for a text that shows what it will do (`Tool.describeCall(arguments)`). For `send-draft`, this is the stored invitation data (title, date, time, place, repeat) and the full email for each attendee: recipient, subject and text.
 2. Prints that text and asks `Approve this action? (y/n)` through `UserChannel`.
 3. Runs the tool only after `y`. After any other answer, it returns `ERROR: the user declined.` to the model.
 
-The model cannot skip this step, because the code runs it, not the prompt. Only `send-invite` needs approval.
+The model cannot skip this step, because the code runs it, not the prompt. Only `send-draft` needs approval.
 
 ### 5.2 Round limit
 
@@ -203,18 +209,21 @@ All dates are `YYYY-MM-DD`. All times are `HH:mm`. Every tool returns text.
 | `edit` | `id`*, `occurrenceDate`, and the fields to change | The item after the change |
 | `remove` | `id`*, `occurrenceDate` | What was removed |
 | `get-user-profile` | none | Name, surname, role and company |
-| `send-invite` | `appointmentId`*, `subject`*, `body`* | One result line for each attendee: sent, or the error. Needs approval (5.1). |
+| `draft-invite` | `appointmentId`*, `subject`*, `body`*, `draftId` | Saves a new draft, or replaces the draft `draftId`. Writes its `.eml` files to `outbox/drafts/`. Sends nothing. Returns the `draftId`. |
+| `list-drafts` | none | The drafts that are not sent yet: id, appointmentId, subject, body |
+| `send-draft` | `draftId`* | Writes one email per attendee to `outbox/sent/`, then removes the draft. One result line for each attendee: sent, or the error. If an email fails, the draft is kept. Needs approval (5.1). |
 
 For `edit` and `remove`:
 - With `occurrenceDate`, the change applies only to that occurrence (it becomes an override).
 - Without `occurrenceDate`, the change applies to the whole item or series.
 - Removing an appointment also removes its linked alarms and notes. The result lists them.
 
-For `send-invite`:
+For `draft-invite` and `send-draft`:
 - The appointment must have at least one attendee.
 - The model writes `subject` and `body`, including the greeting and the signature. The code does not change them.
-- The code writes one email for each attendee as a `.eml` file in the outbox folder, with an `.ics` invitation for the appointment attached (`METHOD:REQUEST`, the user as organizer, the attendee as attendee). For a series, the `.ics` includes the repeat rule.
-- The email is sent only when the user asks for it. Creating an appointment with attendees does not send anything.
+- Each attendee gets one `.eml` file with an `.ics` invitation for the appointment attached (`METHOD:REQUEST`, the user as organizer, the attendee as attendee). For a series, the `.ics` includes the repeat rule and the changed occurrences.
+- The outbox has two buckets: `drafts/` (not sent) and `sent/` (delivered). A file in `sent/` is the delivered email: there is no later sending step.
+- The email is sent only when the user asks for it. Creating an appointment with attendees, or saving a draft, sends nothing.
 
 The code checks every call. A missing required field, a bad date or time, an unknown ID, or a field that does not fit the item type gives an `ERROR:` result.
 
@@ -238,7 +247,7 @@ The system prompt tells the model to:
 4. Ask for a place when the event is probably at a physical place, for example a dentist visit. For a meeting, always ask where it is, or if it is online. Otherwise, do not ask for a place.
 5. Before an `edit` or `remove`, use `find-items` to get the ID, show the item to the user, and ask for a yes. If two or more items match, ask which one.
 6. For a series, change only the named occurrence when the request is clear ("cancel gym next Monday"). When it is not clear ("cancel gym Monday"), ask: "Only one Monday, or the whole series?"
-7. To invite attendees, add them to the appointment with `set-appointment` or `edit`. Never guess an email address. Call `get-user-profile` for the signature. Write the email in the tone the user asks for, then call `send-invite`. When the user asks to send, call `send-invite` at once, with the latest text. Do not ask for confirmation in chat: the approval step (5.1) is the only confirmation.
+7. To invite attendees, add them to the appointment with `set-appointment` or `edit`. Never guess an email address. Call `get-user-profile` for the signature. Write the email in the tone the user asks for and save it with `draft-invite`. To change a draft, call `draft-invite` again with its `draftId` and the complete new text. Never store an email as a note. Use `list-drafts` to find drafts. When the user asks to send, call `send-draft` at once (after `draft-invite` if the text changed). Do not ask for confirmation in chat: the approval step (5.1) is the only confirmation.
 8. When confirming a change, state only the values in the tool result. If the user gives an end time or a duration, pass `endTime`.
 9. When several values are missing, ask for all of them in one message, as a short numbered list.
 10. Answer in short, plain sentences.
@@ -268,7 +277,9 @@ The confirmation in rule 5 is enforced only by the prompt, not by the code.
   - `Agent`: a fake `ChatModel` returns a scripted sequence (tool call, then text). The test checks the messages and the 10-round limit.
   - `AlertScheduler`: due alerts print once; cancelled occurrences do not print.
   - Approval: a fake `UserChannel` answers `y` or `n`; the tool runs only after `y`.
-  - `send-invite`: a fake `EmailSender` records the emails; one email per attendee, `.ics` attached.
+  - Drafts: saving, replacing, listing and removing drafts in `CalendarService`; `DraftFolder` writes, replaces and deletes only its own files.
+  - `draft-invite`: writes to `drafts/`, keeps the id when a draft changes, sends nothing.
+  - `send-draft`: needs approval; a fake `EmailSender` records one email per attendee with the `.ics`; the draft is removed on success and kept on a failure.
   - `EmlFormatter`: headers, text part, attachment part and boundaries.
   - `FileEmailSender`: one file per email, a numbered name when the name is taken, an error when the folder cannot be written.
   - `IcsBuilder`: required `.ics` fields, times, and the repeat rule.

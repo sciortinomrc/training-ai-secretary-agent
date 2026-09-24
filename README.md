@@ -17,7 +17,12 @@ written by hand. Read `src/main/java/io/meterian/aicalendar/agent/Agent.java` to
 
 Fill in your profile, including `profile.email` (the sender address of invitations). `settings.properties` holds personal data and is in `.gitignore`.
 
-Emails are not sent. Each invitation is written as a `.eml` file in the `outbox/` folder, which takes the place of an SMTP server. Open the file with a mail program (Thunderbird, Outlook) to see the email and the invitation.
+Emails are not sent over the network. The `outbox/` folder has two buckets:
+
+- `outbox/drafts/` — drafts you can still change, for example `D-1-anna_example.com.eml`.
+- `outbox/sent/` — delivered emails. Writing a file here takes the place of an SMTP server.
+
+Open a file with a mail program (Thunderbird, Outlook) to see the email and the `invite.ics` invitation.
 
 ## Commands
 
@@ -41,8 +46,9 @@ Run these requests in order and check each result:
 6. `Move gym next Monday to 19:00` — only that Monday changes (`list-day` for the Monday after still shows 18:00).
 7. `Cancel gym Monday` — the agent asks: one Monday, or the whole series?
 8. `Cancel the dentist` — the agent shows the appointment and asks for a yes.
-9. `Set a meeting with Anna Rossi on Friday at 10:00 at our office and send her an invite at anna@example.com.
-   Say I'm thrilled to meet up to discuss this business opportunity, thank her for her time, and sign with my
-   name, role and company.` — the agent shows the email and asks `Approve this action? (y/n)`. After `y`, check
-   the `outbox/` folder: open the new `.eml` file and check the text and the `invite.ics` attachment.
-10. `Set an alarm in 2 minutes: stretch` — within 30 seconds of that time, `⏰ HH:mm stretch` appears.
+9. `Set a meeting with Anna Rossi on Friday at 10:00 at our office. Her email is anna@example.com. Draft an invite:
+   say I'm thrilled to meet up to discuss this business opportunity, and sign with my name, role and company.`
+   — the draft appears in `outbox/drafts/`. Nothing is sent.
+10. `Edit the draft: tell her I might be slightly late. Then send it.` — the agent shows the invitation details and
+    the email, and asks `Approve this action? (y/n)`. After `y`, the email is in `outbox/sent/` and the draft is gone.
+11. `Set an alarm in 2 minutes: stretch` — within 30 seconds of that time, `⏰ HH:mm stretch` appears.

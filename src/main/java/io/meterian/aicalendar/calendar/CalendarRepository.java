@@ -30,6 +30,10 @@ class CalendarRepository {
         return data.notes;
     }
 
+    List<Draft> getDrafts() {
+        return data.drafts;
+    }
+
     Appointment findAppointment(String id) {
         return findById(data.appointments, id, appointment -> appointment.id);
     }
@@ -55,6 +59,27 @@ class CalendarRepository {
     void insertNote(Note note) {
         note.id = assignNextId(ItemIds.NOTE_PREFIX);
         data.notes.add(note);
+    }
+
+    Draft findDraft(String id) {
+        return data.drafts.stream()
+                .filter(draft -> draft.id.equals(id))
+                .findFirst()
+                .orElseThrow(() -> new CalendarException(
+                        "No draft has the id " + id + ". Use list-drafts to get the id."));
+    }
+
+    void insertDraft(Draft draft) {
+        draft.id = assignNextId(ItemIds.DRAFT_PREFIX);
+        data.drafts.add(draft);
+    }
+
+    void replaceDraft(Draft draft) {
+        data.drafts.set(data.drafts.indexOf(findDraft(draft.id)), draft);
+    }
+
+    void removeDraft(String id) {
+        data.drafts.remove(findDraft(id));
     }
 
     void saveChanges() {

@@ -11,18 +11,22 @@ import io.meterian.aicalendar.calendar.OccurrenceExpander;
 import io.meterian.aicalendar.channel.ConsoleChannel;
 import io.meterian.aicalendar.channel.UserChannel;
 import io.meterian.aicalendar.chat.OllamaClient;
+import io.meterian.aicalendar.email.DraftFolder;
 import io.meterian.aicalendar.email.EmlFormatter;
 import io.meterian.aicalendar.email.FileEmailSender;
 import io.meterian.aicalendar.email.IcsBuilder;
 import io.meterian.aicalendar.tools.AddNoteTool;
+import io.meterian.aicalendar.tools.DraftInviteTool;
 import io.meterian.aicalendar.tools.EditTool;
 import io.meterian.aicalendar.tools.FindItemsTool;
 import io.meterian.aicalendar.tools.GetCurrentDateTimeTool;
 import io.meterian.aicalendar.tools.GetDefaultLeadTimeTool;
 import io.meterian.aicalendar.tools.GetUserProfileTool;
+import io.meterian.aicalendar.tools.InviteEmailBuilder;
+import io.meterian.aicalendar.tools.ListDraftsTool;
 import io.meterian.aicalendar.tools.ListDayTool;
 import io.meterian.aicalendar.tools.RemoveTool;
-import io.meterian.aicalendar.tools.SendInviteTool;
+import io.meterian.aicalendar.tools.SendDraftTool;
 import io.meterian.aicalendar.tools.SetAlarmTool;
 import io.meterian.aicalendar.tools.SetAppointmentTool;
 import io.meterian.aicalendar.tools.ToolRegistry;
@@ -33,6 +37,7 @@ import java.io.PrintStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Clock;
 import java.util.List;
@@ -87,6 +92,11 @@ public final class Main {
     }
 
     private static ToolRegistry buildToolRegistry(CalendarService service, Settings settings, Clock clock) {
+        Path outboxFolder = Paths.get(settings.readValue("outbox.folder", "outbox"));
+        EmlFormatter formatter = new EmlFormatter();
+        DraftFolder draftFolder = new DraftFolder(outboxFolder.resolve("drafts"), formatter, clock);
+        FileEmailSender sentFolderSender = new FileEmailSender(outboxFolder.resolve("sent"), formatter, clock);
+        InviteEmailBuilder emailBuilder = new InviteEmailBuilder(settings, new IcsBuilder(clock.getZone()), clock);
         return new ToolRegistry(List.of(
                 new GetCurrentDateTimeTool(clock),
                 new GetDefaultLeadTimeTool(),
@@ -98,12 +108,9 @@ public final class Main {
                 new EditTool(service),
                 new RemoveTool(service),
                 new GetUserProfileTool(settings),
-                new SendInviteTool(service, settings, buildFileEmailSender(settings, clock),
-                        new IcsBuilder(clock.getZone()), clock)));
-    }
-
-    private static FileEmailSender buildFileEmailSender(Settings settings, Clock clock) {
-        return new FileEmailSender(Paths.get(settings.readValue("outbox.folder", "outbox")), new EmlFormatter(), clock);
+                new DraftInviteTool(service, emailBuilder, draftFolder),
+                new ListDraftsTool(service),
+                new SendDraftTool(service, emailBuilder, sentFolderSender, draftFolder)));
     }
 
     private static void runConversation(Agent agent, UserChannel channel) {

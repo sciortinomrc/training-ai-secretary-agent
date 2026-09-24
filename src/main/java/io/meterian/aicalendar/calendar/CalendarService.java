@@ -2,6 +2,7 @@ package io.meterian.aicalendar.calendar;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -58,6 +59,34 @@ public class CalendarService {
     /** Without occurrenceDate, removes the whole item (and an appointment's linked alarms and notes). */
     public synchronized List<String> removeItem(String id, LocalDate occurrenceDate) {
         return applyChange(() -> remover.removeItem(id, occurrenceDate));
+    }
+
+    /** Without an id, saves a new draft. With the id of an existing draft, replaces that draft. */
+    public synchronized Draft saveDraft(Draft draft) {
+        return applyChange(() -> {
+            validator.validateDraft(draft);
+            if (draft.id == null) {
+                repository.insertDraft(draft);
+            } else {
+                repository.replaceDraft(draft);
+            }
+            return draft;
+        });
+    }
+
+    public synchronized void removeDraft(String id) {
+        applyChange(() -> {
+            repository.removeDraft(id);
+            return id;
+        });
+    }
+
+    public synchronized Draft findDraft(String id) {
+        return repository.findDraft(id);
+    }
+
+    public synchronized List<Draft> listDrafts() {
+        return new ArrayList<>(repository.getDrafts());
     }
 
     public synchronized Appointment findAppointment(String id) {

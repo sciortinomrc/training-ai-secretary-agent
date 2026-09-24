@@ -1,11 +1,12 @@
 package io.meterian.aicalendar.calendar;
 
-/** Item IDs are a prefix and a number: A-1 is an appointment, L-1 an alarm, N-1 a note. */
+/** Item IDs are a prefix and a number: A-1 is an appointment, L-1 an alarm, N-1 a note, D-1 an email draft. */
 final class ItemIds {
 
     static final String APPOINTMENT_PREFIX = "A";
     static final String ALARM_PREFIX = "L";
     static final String NOTE_PREFIX = "N";
+    static final String DRAFT_PREFIX = "D";
 
     private ItemIds() {
     }

@@ -11,7 +11,7 @@ Base package `io.meterian.aicalendar`:
 - `agent`: `Agent` (tool-call loop, user approval, 10-round limit), `SystemPrompt`
 - `tools`: one class per tool; `AbstractTool` turns exceptions into `ERROR:` results
 - `alerts`: `AlertScheduler` (background thread, every 30 seconds)
-- `email`: `IcsBuilder`, `EmlFormatter`, `FileEmailSender` (writes `.eml` files to `outbox/`; no email service)
+- `email`: `IcsBuilder`, `EmlFormatter`, `DraftFolder` (`outbox/drafts/`), `FileEmailSender` (`outbox/sent/`); `.eml` files only, no email service
 - `channel`: `UserChannel`, `ConsoleChannel`
 
 A tool returns JSON on success and text that starts with `ERROR:` on failure. It never throws into the agent loop.
