@@ -207,7 +207,7 @@ All dates are `YYYY-MM-DD`. All times are `HH:mm`. Every tool returns text.
 | `set-appointment` | `title`*, `date`*, `startTime`*, `leadTimeMinutes` (default 30), `endTime`, `place`, `repeat` | The new appointment and its ID |
 | `set-alarm` | `message`*, then either `date`* + `time`* + optional `repeat`, or `appointmentId`* + `minutesBefore`* | The new alarm and its ID |
 | `add-note` | `text`*, and one of `date` or `appointmentId` | The new note and its ID |
-| `find-items` | `query`, `fromDate`, `toDate`, `type` (`appointment`, `alarm`, `note`) | Matching items with IDs and repeat rules |
+| `find-items` | `query`, `fromDate`, `toDate`, `type` (`appointment`, `alarm`, `note`) | Matching items with IDs and repeat rules; each appointment also lists the texts of its notes |
 | `list-day` | `date`* | All appointments, alarms and notes on that day, sorted by time |
 | `edit` | `id`*, `occurrenceDate`, and the fields to change | The item after the change |
 | `remove` | `id`*, `occurrenceDate` | What was removed |
@@ -257,7 +257,7 @@ The code checks every call. A missing required field, a bad date or time, an unk
 The system prompt (`SystemPrompt.TEXT`) tells the model to:
 
 1. Call `get-current-date-time` before it turns a relative date into a date. A weekday name means the next such day after today, never today; use `nextDays`. For today, the user says "today".
-2. Treat an appointment as complete with a title, a date and a start time. Derive the title from the request; a role such as "lawyer" is enough, never ask for a first name or surname.
+2. Treat an appointment as complete with a title, a date and a start time. Derive the title from the request; a role such as "lawyer" is enough, never ask for a first name or surname. Keep what the appointment is about ("to discuss my will"), and any other detail, as a note attached to it (`add-note` with the `appointmentId`), and read those notes when the user asks about the appointment.
 3. Never guess the date or the start time, but take a date from context ("also", "that day"), or from the newest appointment after a restart, and say which date was used.
 4. Not ask for the alert time: the default is used unless the user asks for a lead time.
 5. Ask for a place when the event is probably at a physical place; for a meeting, ask where it is or if it is online.

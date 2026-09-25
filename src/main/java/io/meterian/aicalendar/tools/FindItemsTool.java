@@ -6,7 +6,9 @@ import io.meterian.aicalendar.Json;
 import io.meterian.aicalendar.calendar.Alarm;
 import io.meterian.aicalendar.calendar.Appointment;
 import io.meterian.aicalendar.calendar.CalendarService;
+import io.meterian.aicalendar.calendar.Note;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class FindItemsTool extends AbstractTool {
 
@@ -24,7 +26,8 @@ public class FindItemsTool extends AbstractTool {
     @Override
     public String getDescription() {
         return "Search appointments, alarms and notes. Use it to get the id before edit, remove or send-invite. "
-                + "All parameters are optional. Returns the full items, each with a 'type' field.";
+                + "All parameters are optional. Returns the full items, each with a 'type' field. Each "
+                + "appointment also lists its notes, which often say what it is about.";
     }
 
     @Override
@@ -44,13 +47,26 @@ public class FindItemsTool extends AbstractTool {
                 arguments.readOptionalText("type"),
                 arguments.readOptionalDate("fromDate"),
                 arguments.readOptionalDate("toDate"));
+        List<Object> allNotes = service.findItems(null, "note", null, null);
         ArrayNode result = Json.MAPPER.createArrayNode();
         for (Object item : items) {
             ObjectNode node = Json.MAPPER.valueToTree(item);
             node.put("type", resolveItemType(item));
+            if (item instanceof Appointment) {
+                node.set("notes", Json.MAPPER.valueToTree(listAttachedNoteTexts(allNotes, ((Appointment) item).id)));
+            }
             result.add(node);
         }
         return Json.writeJson(result);
+    }
+
+    /** An appointment's notes often say what it is about, so they come with the appointment. */
+    private static List<String> listAttachedNoteTexts(List<Object> notes, String appointmentId) {
+        return notes.stream()
+                .map(note -> (Note) note)
+                .filter(note -> appointmentId.equals(note.appointmentId))
+                .map(note -> note.text)
+                .collect(Collectors.toList());
     }
 
     private static String resolveItemType(Object item) {

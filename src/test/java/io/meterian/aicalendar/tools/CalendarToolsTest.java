@@ -141,6 +141,18 @@ class CalendarToolsTest {
     }
 
     @Test
+    void findItemsShowsTheNotesOfAnAppointment() throws Exception {
+        new SetAppointmentTool(service).execute(parseArguments(
+                "{'title':'Meeting with lawyer','date':'2026-10-02','startTime':'17:00','place':'His office'}"));
+        new AddNoteTool(service).execute(parseArguments("{'text':'Discuss my will','appointmentId':'A-1'}"));
+
+        JsonNode items = Json.MAPPER.readTree(
+                new FindItemsTool(service).execute(parseArguments("{'query':'lawyer','type':'appointment'}")));
+
+        assertEquals("Discuss my will", items.get(0).get("notes").get(0).asText(), items.toString());
+    }
+
+    @Test
     void listDayReturnsEntriesSortedByTime() throws Exception {
         SetAppointmentTool appointments = new SetAppointmentTool(service);
         appointments.execute(parseArguments(

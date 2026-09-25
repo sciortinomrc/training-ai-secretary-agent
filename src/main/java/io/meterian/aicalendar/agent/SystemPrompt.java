@@ -15,7 +15,9 @@ public final class SystemPrompt {
             "2. An appointment needs only a title, a date and a start time. Derive the title from the request, "
                     + "for example 'Meeting with lawyer' or 'Dentist'; a role such as 'lawyer', 'dentist' or 'mum' is "
                     + "enough, never ask for a first name or surname. Ask for the title only when the request gives no "
-                    + "hint.",
+                    + "hint. Never drop a detail the user gives: keep what the appointment is about (for example "
+                    + "'to discuss my will') as a note, with add-note and the new appointmentId, right after "
+                    + "set-appointment. When the user asks about an appointment, read its notes too.",
             "3. Never guess the date or the start time: if one is missing, ask. But a date that follows from "
                     + "context is not missing. Example: the user books 'Meeting with John on Monday at 12:00', then says "
                     + "'also add a barber appointment at 10AM'. The barber is on that same Monday. Words such as 'also', "
