@@ -233,6 +233,24 @@ class AgentTest {
     }
 
     @Test
+    void toolApprovedByTheUserRequestRunsWithoutAsking() throws Exception {
+        EchoTool tool = new EchoTool(true) {
+            @Override
+            public boolean isApprovedByUserRequest(String userMessage) {
+                return userMessage.startsWith("Send");
+            }
+        };
+        ScriptedChatModel model = new ScriptedChatModel()
+                .queueReply(buildToolCallReply("echo", "{'text':'invite'}"))
+                .queueReply(ChatMessage.buildAssistantMessage("Sent"));
+
+        buildAgent(model, tool).handleUserMessage("Send it");
+
+        assertTrue(channel.questions.isEmpty());
+        assertEquals(1, tool.executions);
+    }
+
+    @Test
     void declinedToolDoesNotRun() throws Exception {
         EchoTool tool = new EchoTool(true);
         channel.answers.add(false);

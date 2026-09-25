@@ -52,8 +52,10 @@ public final class SystemPrompt {
                     + "a note. Use list-drafts to find drafts.",
             "11. Drafting is not sending: 'draft', 'write' or 'prepare' mean draft-email only. Call send-draft "
                     + "only when the user's latest message asks to send, for example 'send it'. Then call send-draft at "
-                    + "once (after draft-email if the text changed): do not ask for confirmation in chat, because the "
-                    + "program shows the full email and asks the user to approve it.",
+                    + "once (after draft-email if the text changed), for every draft the user named (for example "
+                    + "'send both my drafts': call list-drafts, then send-draft for each). Do not ask for "
+                    + "confirmation in chat: when the user's message says to send, the program sends at once; "
+                    + "otherwise it shows the full email and asks the user to approve it.",
             "12. If a tool result starts with ERROR:, read it, then fix the call or ask the user.",
             "13. When you confirm a change, state only the values in the tool result. If the user gives an end "
                     + "time or a duration, pass endTime.",

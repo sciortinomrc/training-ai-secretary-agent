@@ -33,6 +33,7 @@ public class Agent {
     private final String systemPrompt;
     private final ConversationTrace trace;
     private final List<ChatMessage> conversation = new ArrayList<>();
+    private String latestUserMessage;
 
     public Agent(ChatModel model, ToolRegistry tools, UserChannel channel, String systemPrompt) {
         this(model, tools, channel, systemPrompt, new SilentConversationTrace());
@@ -49,6 +50,7 @@ public class Agent {
 
     public String handleUserMessage(String text) {
         trace.recordUserMessage(text);
+        latestUserMessage = text;
         conversation.add(ChatMessage.buildUserMessage(text));
         String reply = answerUserMessage();
         trace.recordAgentReply(reply);
@@ -109,13 +111,18 @@ public class Agent {
         }
         JsonNode arguments = readArguments(toolCall);
         try {
-            if (tool.get().requiresApproval() && !askUserForApproval(tool.get(), arguments)) {
+            if (needsApprovalQuestion(tool.get()) && !askUserForApproval(tool.get(), arguments)) {
                 return DECLINED_RESULT;
             }
             return tool.get().execute(arguments);
         } catch (RuntimeException e) {
             return "ERROR: " + e.getMessage();
         }
+    }
+
+    /** A tool that needs approval asks, unless the user's latest message already gave it. */
+    private boolean needsApprovalQuestion(Tool tool) {
+        return tool.requiresApproval() && !tool.isApprovedByUserRequest(latestUserMessage);
     }
 
     private boolean askUserForApproval(Tool tool, JsonNode arguments) {

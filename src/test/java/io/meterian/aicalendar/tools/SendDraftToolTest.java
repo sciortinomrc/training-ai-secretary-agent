@@ -80,6 +80,20 @@ class SendDraftToolTest {
     }
 
     @Test
+    void anExplicitSendRequestIsTheApproval() {
+        SendDraftTool tool = buildTool();
+
+        assertTrue(tool.isApprovedByUserRequest("send email"));
+        assertTrue(tool.isApprovedByUserRequest("Send both my drafts"));
+        assertTrue(tool.isApprovedByUserRequest("Edit the draft: I may be late. Then send it."));
+        assertFalse(tool.isApprovedByUserRequest("Draft an invite, but do not send it yet."));
+        assertFalse(tool.isApprovedByUserRequest("Write it, don't send it"));
+        assertFalse(tool.isApprovedByUserRequest("Write it, don’t send it"));
+        assertFalse(tool.isApprovedByUserRequest("I will send it later"));
+        assertFalse(tool.isApprovedByUserRequest("Write John an email"));
+    }
+
+    @Test
     void describeCallShowsTheInvitationDetailsAndEveryEmail() throws Exception {
         String preview = buildTool().describeCall(parseArguments(SEND_FIRST_DRAFT));
 

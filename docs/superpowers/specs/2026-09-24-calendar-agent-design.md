@@ -188,6 +188,8 @@ A tool can mark itself as "needs approval" (`Tool.requiresApproval()`). Before t
 
 The model cannot skip this step, because the code runs it, not the prompt. Only `send-draft` needs approval.
 
+The user's own words can be the approval (`Tool.isApprovedByUserRequest`): when the latest user message asks to send ("send email", "send both my drafts"), `send-draft` runs without the question. Words that hold the send back ("don't send", "not send yet", "send it later") do not count, so a send the user did not ask for still asks.
+
 ### 5.2 Round limit
 
 After 10 rounds of tool calls without a text reply, the agent stops and tells the user: "I could not finish this request."

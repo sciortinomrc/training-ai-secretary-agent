@@ -19,6 +19,14 @@ public interface Tool {
         return false;
     }
 
+    /**
+     * True when the user's latest message already approves this call, for example "send it" for sending an email.
+     * Then the agent loop does not ask again.
+     */
+    default boolean isApprovedByUserRequest(String userMessage) {
+        return false;
+    }
+
     /** The yes/no question the user answers before the call runs. It must say what "yes" does. */
     default String getApprovalQuestion() {
         return "Approve this action?";

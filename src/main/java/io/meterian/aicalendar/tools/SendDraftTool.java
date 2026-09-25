@@ -41,8 +41,8 @@ public class SendDraftTool extends AbstractTool {
     @Override
     public String getDescription() {
         return "Send a saved draft to its recipients. Call it as soon as the user asks to send: "
-                + "do not ask for confirmation in chat, because the program shows the full email and asks the "
-                + "user to approve it. When it succeeds, the emails are in the sent folder: they are delivered, "
+                + "do not ask for confirmation in chat. When the user's message says to send, it is sent at once; "
+                + "otherwise the program shows the full email and asks the user to approve it. When it succeeds, the emails are in the sent folder: they are delivered, "
                 + "and there is no later step.";
     }
 
@@ -54,6 +54,12 @@ public class SendDraftTool extends AbstractTool {
     @Override
     public boolean requiresApproval() {
         return true;
+    }
+
+    /** "Send it" or "send both my drafts" is the approval. A draft the user did not ask to send still asks. */
+    @Override
+    public boolean isApprovedByUserRequest(String userMessage) {
+        return SendRequestReader.isExplicitSendRequest(userMessage);
     }
 
     /** Says plainly that "yes" sends the email, so nobody sends a draft by answering out of habit. */
