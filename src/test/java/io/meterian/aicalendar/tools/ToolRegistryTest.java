@@ -57,6 +57,16 @@ class ToolRegistryTest {
     }
 
     @Test
+    void currentDateTimeToolListsTheNextDateOfEachWeekdayAfterToday() throws Exception {
+        JsonNode nextDays = Json.MAPPER.readTree(
+                new GetCurrentDateTimeTool(clock).execute(Json.MAPPER.createObjectNode())).get("nextDays");
+
+        assertEquals("2026-09-25", nextDays.get("FRIDAY").asText());
+        assertEquals("2026-09-28", nextDays.get("MONDAY").asText());
+        assertEquals("2026-10-01", nextDays.get("THURSDAY").asText(), "today is Thursday, so the next one is a week later");
+    }
+
+    @Test
     void defaultLeadTimeToolReturnsThirty() {
         assertEquals("30", new GetDefaultLeadTimeTool().execute(Json.MAPPER.createObjectNode()));
     }

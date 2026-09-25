@@ -202,7 +202,7 @@ All dates are `YYYY-MM-DD`. All times are `HH:mm`. Every tool returns text.
 
 | Tool | Parameters (* = required) | Result |
 |---|---|---|
-| `get-current-date-time` | none | Current date, time, day of the week and time zone |
+| `get-current-date-time` | none | Current date, time, day of the week, time zone, and `nextDays`: the next date of each weekday after today |
 | `get-default-lead-time` | none | `30` (the constant `DEFAULT_LEAD_TIME_MINUTES`) |
 | `set-appointment` | `title`*, `date`*, `startTime`*, `leadTimeMinutes`*, `endTime`, `place`, `repeat` | The new appointment and its ID |
 | `set-alarm` | `message`*, then either `date`* + `time`* + optional `repeat`, or `appointmentId`* + `minutesBefore`* | The new alarm and its ID |
@@ -256,7 +256,7 @@ The code checks every call. A missing required field, a bad date or time, an unk
 
 The system prompt tells the model to:
 
-1. Call `get-current-date-time` before it turns a relative date ("Wednesday", "tomorrow") into a date.
+1. Call `get-current-date-time` before it turns a relative date ("Wednesday", "tomorrow") into a date. A weekday name means the next such day after today, never today (on a Friday, "Friday" is next week's Friday); use `nextDays`. For today, the user says "today".
 2. Derive the title from the request, for example "Meeting with John Stone" or "Dentist". Ask for the title only when the request gives no hint. Never guess the date, the start time or an email address: if one is missing, ask the user. Taking a value from context is not guessing: when the user says "also", "that day" or "before the meeting", use the date of the appointment just discussed, or, when the conversation does not show it, of the newest appointment (`find-items`). Always say which date was used.
 3. If the user gives no lead time, call `get-default-lead-time` and ask: "Do you want the alert 30 minutes before, or at a different time?"
 4. Ask for a place when the event is probably at a physical place, for example a dentist visit. For a meeting, always ask where it is, or if it is online. Otherwise, do not ask for a place.
