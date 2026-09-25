@@ -1,5 +1,6 @@
 package io.meterian.aicalendar.trace;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.meterian.aicalendar.Json;
@@ -37,7 +38,7 @@ class FileConversationTraceTest {
     }
 
     @Test
-    void writesOneReadableLinePerStep() throws Exception {
+    void showsOnlyReasoningAndToolSteps() throws Exception {
         ChatMessage toolCallReply = ChatMessage.buildAssistantMessage("");
         toolCallReply.thinking = "The user wants Monday.";
         toolCallReply.toolCalls.add(ToolCall.buildToolCall("list-day",
@@ -52,14 +53,14 @@ class FileConversationTraceTest {
         trace.recordAgentReply("Monday is free.");
 
         String text = readTraceWithoutColors();
-        assertTrue(text.contains("17:05:01 YOU → AGENT    What is on Monday?"), text);
-        assertTrue(text.contains("17:05:01 AGENT → LLM    3 messages, 14 tools"), text);
-        assertTrue(text.contains("17:05:01 LLM → AGENT    thinking: The user wants Monday."), text);
-        assertTrue(text.contains("17:05:01 LLM → AGENT    tool call: list-day {\"date\":\"2026-09-28\"}"), text);
-        assertTrue(text.contains("17:05:01 TOOL           list-day → {\"appointments\":[]}"), text);
-        assertTrue(text.contains("17:05:01 YOU APPROVE    Send this email now? → yes"), text);
-        assertTrue(text.contains("17:05:01 LLM → AGENT    text: Monday is free."), text);
-        assertTrue(text.contains("17:05:01 AGENT → YOU    Monday is free."), text);
+        assertTrue(text.contains("──── new request ────"), text);
+        assertTrue(text.contains("17:05:01 THINKING     The user wants Monday."), text);
+        assertTrue(text.contains("17:05:01 TOOL CALL    list-day {\"date\":\"2026-09-28\"}"), text);
+        assertTrue(text.contains("17:05:01 TOOL RESULT  list-day → {\"appointments\":[]}"), text);
+        assertFalse(text.contains("What is on Monday?"), "the chat already shows the user's message");
+        assertFalse(text.contains("Monday is free."), "the chat already shows the reply");
+        assertFalse(text.contains("3 messages"), text);
+        assertFalse(text.contains("Send this email now?"), "the chat already shows the approval");
     }
 
     @Test

@@ -13,20 +13,19 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Writes each conversation step as one colored line to a file, for example to watch it with "tail -f" next to
- * the chat. A trace that cannot be written never stops the chat: it prints one warning and goes quiet.
+ * Writes what the chat does not show to a file: the LLM's reasoning, its tool calls and the tool results. Each
+ * user request starts with a separator line. It is meant to be watched with "tail -f" next to the chat. A trace
+ * that cannot be written never stops the chat: it prints one warning and goes quiet.
  */
 public class FileConversationTrace implements ConversationTrace {
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final int MAX_TEXT_LENGTH = 400;
+    private static final String REQUEST_SEPARATOR = "──── new request ────";
     private static final String RESET = "\u001B[0m";
-    private static final String CYAN = "\u001B[36m";
-    private static final String YELLOW = "\u001B[33m";
+    private static final String GREY = "\u001B[90m";
     private static final String MAGENTA = "\u001B[35m";
     private static final String GREEN = "\u001B[32m";
-    private static final String RED = "\u001B[31m";
-    private static final String GREY = "\u001B[90m";
 
     private final Path file;
     private final Clock clock;
@@ -37,55 +36,55 @@ public class FileConversationTrace implements ConversationTrace {
         this.clock = clock;
     }
 
+    /** The chat shows the message itself; the trace only marks where a new request starts. */
     @Override
     public void recordUserMessage(String text) {
-        writeLine(CYAN, "YOU → AGENT", shortenText(text));
+        appendToFile(GREY + REQUEST_SEPARATOR + RESET + "\n");
     }
 
     @Override
     public void recordModelRequest(int messageCount, int toolCount) {
-        writeLine(YELLOW, "AGENT → LLM", messageCount + " messages, " + toolCount + " tools");
     }
 
+    /** Shows the reasoning and the tool calls. A text reply is skipped, because the chat shows it. */
     @Override
     public void recordModelReply(ChatMessage reply) {
         if (reply.thinking != null && !reply.thinking.isBlank()) {
-            writeLine(GREY, "LLM → AGENT", "thinking: " + shortenText(reply.thinking));
+            writeLine(GREY, "THINKING", shortenText(reply.thinking));
         }
-        if (reply.hasToolCalls()) {
-            for (ToolCall toolCall : reply.toolCalls) {
-                String call = toolCall.function.name + " " + toolCall.function.arguments;
-                writeLine(MAGENTA, "LLM → AGENT", "tool call: " + shortenText(call));
-            }
-        } else {
-            writeLine(MAGENTA, "LLM → AGENT", "text: " + shortenText(reply.content));
+        for (ToolCall toolCall : reply.toolCalls) {
+            String call = toolCall.function.name + " " + toolCall.function.arguments;
+            writeLine(MAGENTA, "TOOL CALL", shortenText(call));
         }
     }
 
+    /** The chat shows the approval question and the answer. */
     @Override
     public void recordApproval(String question, boolean approved) {
-        writeLine(RED, "YOU APPROVE", question + " → " + (approved ? "yes" : "no"));
     }
 
     @Override
     public void recordToolResult(String toolName, JsonNode arguments, String result) {
-        writeLine(GREEN, "TOOL", toolName + " → " + shortenText(result));
+        writeLine(GREEN, "TOOL RESULT", toolName + " → " + shortenText(result));
     }
 
+    /** The chat shows the reply. */
     @Override
     public void recordAgentReply(String text) {
-        writeLine(CYAN, "AGENT → YOU", shortenText(text));
     }
 
-    /** For example: "17:05:01 AGENT → LLM    3 messages, 14 tools", with the direction in color. */
-    private synchronized void writeLine(String color, String direction, String text) {
+    /** For example: "17:05:01 TOOL CALL    list-day {...}", with the label in color. */
+    private void writeLine(String color, String label, String text) {
+        String time = TIME_FORMAT.format(LocalTime.now(clock));
+        appendToFile(time + " " + color + String.format("%-12s", label) + RESET + " " + text + "\n");
+    }
+
+    private synchronized void appendToFile(String text) {
         if (isBroken) {
             return;
         }
-        String time = TIME_FORMAT.format(LocalTime.now(clock));
-        String line = time + " " + color + String.format("%-14s", direction) + RESET + " " + text + "\n";
         try {
-            Files.writeString(file, line, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            Files.writeString(file, text, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException e) {
             isBroken = true;
             System.err.println("The conversation trace cannot be written to " + file + ": " + e.getMessage()

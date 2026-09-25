@@ -236,7 +236,7 @@ The code checks every call. A missing required field, a bad date or time, an unk
 
 ## 6.1 Conversation trace
 
-`Agent` reports each step to a `ConversationTrace`: the user message, each request to the LLM (message and tool counts), each LLM reply (thinking, tool calls or text), each approval, each tool result, and the final reply. `FileConversationTrace` writes one colored, timestamped line per step (long text is cut after 400 characters); a trace that cannot be written prints one warning and never stops the chat. Without `trace.file`, `SilentConversationTrace` records nothing.
+`Agent` reports each step to a `ConversationTrace`: the user message, each request to the LLM (message and tool counts), each LLM reply (thinking, tool calls or text), each approval, each tool result, and the final reply. `FileConversationTrace` writes only what the chat does not show: a separator per user request, the LLM's reasoning (`THINKING`), its tool calls (`TOOL CALL`) and the tool results (`TOOL RESULT`), one colored, timestamped line each (long text is cut after 400 characters); a trace that cannot be written prints one warning and never stops the chat. Without `trace.file`, `SilentConversationTrace` records nothing.
 
 `run-side-by-side.sh` opens tmux with the chat on the left and `tail -f trace.log` on the right.
 

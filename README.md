@@ -38,9 +38,9 @@ Type `exit` to quit. Alerts show only while the agent runs.
 
     ./run-side-by-side.sh
 
-This opens tmux with two panes: the chat on the left, and on the right every step between you, the agent and
-the LLM — your message, each request to the LLM, the LLM's thinking and tool calls, each tool result, your
-approvals, and the final reply. Type `exit` in the chat to close both. The trace is also saved in `trace.log`.
+This opens tmux with two panes: the chat on the left, and on the right what the chat does not show — the LLM's
+reasoning (THINKING), its tool calls (TOOL CALL) and the tool results (TOOL RESULT). Each of your requests starts
+with a separator line. Type `exit` in the chat to close both. The trace is also saved in `trace.log`.
 
 Without tmux, set `trace.file=trace.log` in `settings.properties` and run `tail -f trace.log` in a second terminal.
 
