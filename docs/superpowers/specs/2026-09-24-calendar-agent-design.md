@@ -57,7 +57,9 @@ The code must follow Clean Code guidelines:
 An alarm has one of two forms. The code rejects an alarm that has both forms or neither.
 
 - **Fixed alarm:** `id`, `message`, `date`, `time`, optional `repeat`, optional `overrides`.
-- **Linked alarm:** `id`, `message`, `appointmentId`, `minutesBefore` (0 to 10080, 7 days). It fires before each occurrence of the appointment, so it follows the appointment when the appointment moves.
+- **Linked alarm:** `id`, `message`, `appointmentId`, `minutesBefore` (0 to 10080, 7 days).
+
+The `message` is optional in both forms. An alarm without a message shows `⏰ HH:mm Alarm`, and the model does not ask for one. It fires before each occurrence of the appointment, so it follows the appointment when the appointment moves.
 
 ### 3.3 Note
 

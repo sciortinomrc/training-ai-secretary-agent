@@ -98,6 +98,18 @@ class AlertSchedulerTest {
     }
 
     @Test
+    void alarmWithoutMessageShowsTheWordAlarm() {
+        Alarm silent = new Alarm();
+        silent.date = TODAY;
+        silent.time = LocalTime.of(10, 5);
+        service.addAlarm(silent);
+
+        checkAt(TODAY.atTime(10, 5, 30));
+
+        assertEquals(List.of("\u23F0 10:05 Alarm"), channel.alerts);
+    }
+
+    @Test
     void cancelledOccurrenceDoesNotAlert() {
         Appointment daily = addAppointment("Standup", TODAY, LocalTime.of(10, 30), 0);
         daily.repeat = new RepeatRule(Frequency.DAILY, null, null);

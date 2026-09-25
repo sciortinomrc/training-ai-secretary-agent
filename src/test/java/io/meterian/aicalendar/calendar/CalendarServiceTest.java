@@ -125,6 +125,11 @@ class CalendarServiceTest {
     }
 
     @Test
+    void alarmNeedsNoMessage() {
+        assertEquals("L-1", service.addAlarm(buildFixedAlarm(null, MONDAY, LocalTime.of(6, 30))).id);
+    }
+
+    @Test
     void addNoteNeedsExactlyOneTarget() {
         service.addAppointment(buildAppointment("Dentist", MONDAY, LocalTime.of(9, 0)));
 

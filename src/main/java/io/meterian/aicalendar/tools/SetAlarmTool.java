@@ -20,7 +20,7 @@ public class SetAlarmTool extends AbstractTool {
 
     @Override
     public String getDescription() {
-        return "Create an alarm: one alert with a short message. Use one of two forms. Fixed: date and time, "
+        return "Create an alarm: one alert at a time, with an optional short message. Use one of two forms. Fixed: date and time, "
                 + "with an optional repeat. Linked: appointmentId and minutesBefore; it fires before each "
                 + "occurrence of that appointment. Returns the new alarm with its id.";
     }
@@ -28,7 +28,8 @@ public class SetAlarmTool extends AbstractTool {
     @Override
     public ObjectNode buildParametersSchema() {
         return new SchemaBuilder()
-                .addString("message", "Short message to show, for example 'Wake up'.", true)
+                .addString("message", "Optional short message, for example 'Wake up'. Leave it out when the "
+                        + "user gives none; never ask for one.", false)
                 .addString("date", "Fixed form: date, YYYY-MM-DD.", false)
                 .addString("time", "Fixed form: time, HH:mm, 24-hour.", false)
                 .addProperty("repeat", SchemaBuilder.buildRepeatSchema(), false)
@@ -40,7 +41,7 @@ public class SetAlarmTool extends AbstractTool {
     @Override
     protected String run(ToolArguments arguments) {
         Alarm alarm = new Alarm();
-        alarm.message = arguments.readRequiredText("message");
+        alarm.message = arguments.readOptionalText("message");
         alarm.date = arguments.readOptionalDate("date");
         alarm.time = arguments.readOptionalTime("time");
         alarm.repeat = arguments.readOptionalRepeat("repeat");

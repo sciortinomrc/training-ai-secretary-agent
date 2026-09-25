@@ -32,8 +32,8 @@ class ItemValidator {
         appointment.attendees.forEach(ItemValidator::validateAttendee);
     }
 
+    /** The message is optional: an alarm without one shows the word "Alarm". */
     void validateAlarm(Alarm alarm) {
-        requireText(alarm.message, "message");
         boolean hasFixedFields = alarm.date != null || alarm.time != null || alarm.repeat != null;
         boolean hasLinkedFields = alarm.appointmentId != null || alarm.minutesBefore != null;
         if (hasFixedFields == hasLinkedFields) {

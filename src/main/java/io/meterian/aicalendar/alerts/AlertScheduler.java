@@ -128,7 +128,9 @@ public class AlertScheduler {
         return occurrence.place == null ? text : text + " (" + occurrence.place + ")";
     }
 
+    /** An alarm without a message shows the word "Alarm". */
     private static String formatAlarmAlert(AlarmOccurrence occurrence) {
-        return ALARM_CLOCK_SYMBOL + " " + TIME_FORMAT.format(occurrence.firesAt) + " " + occurrence.message;
+        String message = occurrence.message == null || occurrence.message.isBlank() ? "Alarm" : occurrence.message;
+        return ALARM_CLOCK_SYMBOL + " " + TIME_FORMAT.format(occurrence.firesAt) + " " + message;
     }
 }

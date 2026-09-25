@@ -99,6 +99,15 @@ class CalendarToolsTest {
     }
 
     @Test
+    void setAlarmWithoutMessage() throws Exception {
+        String result = new SetAlarmTool(service).execute(parseArguments(
+                "{'date':'2026-09-28','time':'06:30','repeat':{'frequency':'WEEKLY',"
+                        + "'daysOfWeek':['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY']}}"));
+
+        assertEquals("L-1", Json.MAPPER.readTree(result).get("id").asText(), result);
+    }
+
+    @Test
     void addNoteToAppointment() throws Exception {
         new SetAppointmentTool(service).execute(parseArguments(
                 "{'title':'Dentist','date':'2026-09-30','startTime':'15:00','leadTimeMinutes':30}"));
