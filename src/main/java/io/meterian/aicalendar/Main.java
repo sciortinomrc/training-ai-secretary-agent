@@ -16,13 +16,13 @@ import io.meterian.aicalendar.email.EmlFormatter;
 import io.meterian.aicalendar.email.FileEmailSender;
 import io.meterian.aicalendar.email.IcsBuilder;
 import io.meterian.aicalendar.tools.AddNoteTool;
-import io.meterian.aicalendar.tools.DraftInviteTool;
+import io.meterian.aicalendar.tools.DraftEmailBuilder;
+import io.meterian.aicalendar.tools.DraftEmailTool;
 import io.meterian.aicalendar.tools.EditTool;
 import io.meterian.aicalendar.tools.FindItemsTool;
 import io.meterian.aicalendar.tools.GetCurrentDateTimeTool;
 import io.meterian.aicalendar.tools.GetDefaultLeadTimeTool;
 import io.meterian.aicalendar.tools.GetUserProfileTool;
-import io.meterian.aicalendar.tools.InviteEmailBuilder;
 import io.meterian.aicalendar.tools.ListDraftsTool;
 import io.meterian.aicalendar.tools.ListDayTool;
 import io.meterian.aicalendar.tools.RemoveTool;
@@ -107,7 +107,8 @@ public final class Main {
         EmlFormatter formatter = new EmlFormatter();
         DraftFolder draftFolder = new DraftFolder(outboxFolder.resolve("drafts"), formatter, clock);
         FileEmailSender sentFolderSender = new FileEmailSender(outboxFolder.resolve("sent"), formatter, clock);
-        InviteEmailBuilder emailBuilder = new InviteEmailBuilder(settings, new IcsBuilder(clock.getZone()), clock);
+        DraftEmailBuilder emailBuilder =
+                new DraftEmailBuilder(service, settings, new IcsBuilder(clock.getZone()), clock);
         return new ToolRegistry(List.of(
                 new GetCurrentDateTimeTool(clock),
                 new GetDefaultLeadTimeTool(),
@@ -119,7 +120,7 @@ public final class Main {
                 new EditTool(service),
                 new RemoveTool(service),
                 new GetUserProfileTool(settings),
-                new DraftInviteTool(service, emailBuilder, draftFolder),
+                new DraftEmailTool(service, emailBuilder, draftFolder),
                 new ListDraftsTool(service),
                 new SendDraftTool(service, emailBuilder, sentFolderSender, draftFolder)));
     }

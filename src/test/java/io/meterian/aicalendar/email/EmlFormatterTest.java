@@ -1,5 +1,6 @@
 package io.meterian.aicalendar.email;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.ZoneId;
@@ -7,6 +8,19 @@ import java.time.ZonedDateTime;
 import org.junit.jupiter.api.Test;
 
 class EmlFormatterTest {
+
+    @Test
+    void formatsAnEmailWithoutAttachmentAsPlainText() {
+        Email email = new Email(new EmailAddress("Marco Rossi", "me@example.com"),
+                new EmailAddress("Anna Rossi", "anna@example.com"), "Hello", "Dear Anna,\nSee you.", null);
+
+        String eml = new EmlFormatter().formatEmail(email,
+                ZonedDateTime.of(2026, 9, 24, 10, 0, 0, 0, ZoneId.of("Europe/Rome")));
+
+        assertTrue(eml.contains("\r\nContent-Type: text/plain; charset=UTF-8\r\n"), eml);
+        assertTrue(eml.endsWith("\r\n\r\nDear Anna,\r\nSee you.\r\n"), eml);
+        assertFalse(eml.contains("multipart"), eml);
+    }
 
     @Test
     void formatsHeadersTextPartAndAttachment() {

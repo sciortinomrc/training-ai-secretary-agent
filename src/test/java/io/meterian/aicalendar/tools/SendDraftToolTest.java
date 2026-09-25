@@ -3,8 +3,8 @@ package io.meterian.aicalendar.tools;
 import static io.meterian.aicalendar.tools.CalendarToolsTest.CLOCK;
 import static io.meterian.aicalendar.tools.CalendarToolsTest.buildService;
 import static io.meterian.aicalendar.tools.CalendarToolsTest.parseArguments;
-import static io.meterian.aicalendar.tools.DraftInviteToolTest.buildCompleteSettings;
-import static io.meterian.aicalendar.tools.DraftInviteToolTest.buildEmailBuilder;
+import static io.meterian.aicalendar.tools.DraftEmailToolTest.buildCompleteSettings;
+import static io.meterian.aicalendar.tools.DraftEmailToolTest.buildEmailBuilder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -61,12 +61,12 @@ class SendDraftToolTest {
                         + "{'name':'Luca Bianchi','email':'luca@example.com'}]}"));
         draftsPath = tempDir.resolve("outbox").resolve("drafts");
         draftFolder = new DraftFolder(draftsPath, new EmlFormatter(), CLOCK);
-        new DraftInviteTool(service, buildEmailBuilder(buildCompleteSettings()), draftFolder).execute(parseArguments(
+        new DraftEmailTool(service, buildEmailBuilder(service, buildCompleteSettings()), draftFolder).execute(parseArguments(
                 "{'appointmentId':'A-1','subject':'Business meeting','body':'Dear guest, I am thrilled to meet.'}"));
     }
 
     private SendDraftTool buildTool() {
-        return new SendDraftTool(service, buildEmailBuilder(buildCompleteSettings()), sender, draftFolder);
+        return new SendDraftTool(service, buildEmailBuilder(service, buildCompleteSettings()), sender, draftFolder);
     }
 
     @Test
@@ -116,6 +116,21 @@ class SendDraftToolTest {
         assertTrue(result.contains("Sent to Luca Bianchi <luca@example.com>."), result);
         assertTrue(result.endsWith("The draft D-1 is kept, because some emails were not sent."), result);
         assertEquals(1, service.listDrafts().size());
+    }
+
+    @Test
+    void sendsAPlainEmailWithoutAttachment() throws Exception {
+        new DraftEmailTool(service, buildEmailBuilder(service, buildCompleteSettings()), draftFolder).execute(
+                parseArguments("{'to':[{'name':'Anna Rossi','email':'anna@example.com'}],'subject':'Thanks',"
+                        + "'body':'Thank you.'}"));
+
+        String preview = buildTool().describeCall(parseArguments("{'draftId':'D-2'}"));
+        buildTool().execute(parseArguments("{'draftId':'D-2'}"));
+
+        assertFalse(preview.contains("Invitation details"), preview);
+        assertTrue(preview.contains("To: Anna Rossi <anna@example.com>"), preview);
+        assertEquals(1, sender.sentEmails.size());
+        assertEquals(null, sender.sentEmails.get(0).attachment);
     }
 
     @Test

@@ -146,7 +146,7 @@ Terminal ──► ConsoleChannel ──► Agent ──► OllamaClient ──�
 | `EmlFormatter` | Formats one email as standard `.eml` text (headers, text part, `.ics` attachment) |
 | `FileEmailSender` | `EmailSender` that writes each sent email as a `.eml` file in `outbox/sent/` |
 | `DraftFolder` | Writes and deletes the `.eml` files of each draft in `outbox/drafts/` (for example `D-1-john_example.com.eml`) |
-| `InviteEmailBuilder` | Builds the invitation emails of an appointment (one per attendee, `.ics` attached) and the approval preview |
+| `DraftEmailBuilder` | Builds the emails of a draft: an invitation (one per attendee, `.ics` attached) or a plain email (one per recipient, no attachment), and the approval preview |
 | `IcsBuilder` | Builds the `.ics` invitation text for one appointment |
 | `Main` | Reads settings, connects the parts, starts the terminal loop |
 
@@ -168,7 +168,7 @@ Terminal ──► ConsoleChannel ──► Agent ──► OllamaClient ──�
 
 `settings.properties` holds personal data. It must not go into version control. The project has a `settings.example.properties` with empty values.
 
-If the profile values are missing, the agent still starts. Only `get-user-profile`, `draft-invite` and `send-draft` return `ERROR:` results that name the missing keys.
+If the profile values are missing, the agent still starts. Only `get-user-profile`, `draft-email` and `send-draft` return `ERROR:` results that name the missing keys.
 
 ## 5. Agent loop
 
@@ -204,7 +204,7 @@ All dates are `YYYY-MM-DD`. All times are `HH:mm`. Every tool returns text.
 |---|---|---|
 | `get-current-date-time` | none | Current date, time, day of the week, time zone, and `nextDays`: the next date of each weekday after today |
 | `get-default-lead-time` | none | `30` (the constant `DEFAULT_LEAD_TIME_MINUTES`) |
-| `set-appointment` | `title`*, `date`*, `startTime`*, `leadTimeMinutes`*, `endTime`, `place`, `repeat` | The new appointment and its ID |
+| `set-appointment` | `title`*, `date`*, `startTime`*, `leadTimeMinutes` (default 30), `endTime`, `place`, `repeat` | The new appointment and its ID |
 | `set-alarm` | `message`*, then either `date`* + `time`* + optional `repeat`, or `appointmentId`* + `minutesBefore`* | The new alarm and its ID |
 | `add-note` | `text`*, and one of `date` or `appointmentId` | The new note and its ID |
 | `find-items` | `query`, `fromDate`, `toDate`, `type` (`appointment`, `alarm`, `note`) | Matching items with IDs and repeat rules |
@@ -212,7 +212,7 @@ All dates are `YYYY-MM-DD`. All times are `HH:mm`. Every tool returns text.
 | `edit` | `id`*, `occurrenceDate`, and the fields to change | The item after the change |
 | `remove` | `id`*, `occurrenceDate` | What was removed |
 | `get-user-profile` | none | Name, surname, role and company |
-| `draft-invite` | `appointmentId`*, `subject`*, `body`*, `draftId` | Saves a new draft, or replaces the draft `draftId`. Writes its `.eml` files to `outbox/drafts/`. Sends nothing. Returns the `draftId`. |
+| `draft-email` | `subject`*, `body`*, and either `appointmentId` (an invitation) or `to` (a plain email to any recipients, not tied to an event); `draftId` | Saves a new draft, or replaces the draft `draftId`. Writes its `.eml` files to `outbox/drafts/`. Sends nothing. Returns the `draftId`. |
 | `list-drafts` | none | The drafts that are not sent yet: id, appointmentId, subject, body |
 | `send-draft` | `draftId`* | Writes one email per attendee to `outbox/sent/`, then removes the draft. One result line for each attendee: sent, or the error. If an email fails, the draft is kept. Needs approval (5.1). |
 
@@ -227,8 +227,8 @@ For `edit` and `remove`:
 - Without `occurrenceDate`, the change applies to the whole item or series.
 - Removing an appointment also removes its linked alarms and notes. The result lists them.
 
-For `draft-invite` and `send-draft`:
-- The appointment must have at least one attendee.
+For `draft-email` and `send-draft`:
+- An invitation needs an appointment with at least one attendee. A plain email needs at least one recipient, each with a name and a valid email address. A draft is one or the other, never both.
 - The model writes `subject` and `body`, including the greeting and the signature. The code does not change them.
 - Each attendee gets one `.eml` file with an `.ics` invitation for the appointment attached (`METHOD:REQUEST`, the user as organizer, the attendee as attendee). For a series, the `.ics` includes the repeat rule and the changed occurrences.
 - The outbox has two buckets: `drafts/` (not sent) and `sent/` (delivered). A file in `sent/` is the delivered email: there is no later sending step.
@@ -254,20 +254,25 @@ The code checks every call. A missing required field, a bad date or time, an unk
 
 ## 8. System prompt rules
 
-The system prompt tells the model to:
+The system prompt (`SystemPrompt.TEXT`) tells the model to:
 
-1. Call `get-current-date-time` before it turns a relative date ("Wednesday", "tomorrow") into a date. A weekday name means the next such day after today, never today (on a Friday, "Friday" is next week's Friday); use `nextDays`. For today, the user says "today".
-2. Derive the title from the request, for example "Meeting with John Stone" or "Dentist". Ask for the title only when the request gives no hint. Never guess the date, the start time or an email address: if one is missing, ask the user. Taking a value from context is not guessing: when the user says "also", "that day" or "before the meeting", use the date of the appointment just discussed, or, when the conversation does not show it, of the newest appointment (`find-items`). Always say which date was used.
-3. If the user gives no lead time, call `get-default-lead-time` and ask: "Do you want the alert 30 minutes before, or at a different time?"
-4. Ask for a place when the event is probably at a physical place, for example a dentist visit. For a meeting, always ask where it is, or if it is online. Otherwise, do not ask for a place.
-5. Before an `edit` or `remove`, use `find-items` to get the ID, show the item to the user, and ask for a yes. If two or more items match, ask which one.
-6. For a series, change only the named occurrence when the request is clear ("cancel gym next Monday"). When it is not clear ("cancel gym Monday"), ask: "Only one Monday, or the whole series?"
-7. To invite attendees, add them to the appointment with `set-appointment` or `edit`. Never guess an email address. Call `get-user-profile` for the signature. Write the email in the tone the user asks for and save it with `draft-invite`. To change a draft, call `draft-invite` again with its `draftId` and the complete new text. Never store an email as a note. Use `list-drafts` to find drafts. Drafting is not sending: "draft", "write" or "prepare" mean `draft-invite` only, and `send-draft` is called only when the user's latest message asks to send. When the user asks to send, call `send-draft` at once (after `draft-invite` if the text changed). Do not ask for confirmation in chat: the approval step (5.1) is the only confirmation.
-8. When confirming a change, state only the values in the tool result. If the user gives an end time or a duration, pass `endTime`.
-9. When several values are missing, ask for all of them in one message, as a short numbered list.
-10. Answer in short, plain sentences.
+1. Call `get-current-date-time` before it turns a relative date into a date. A weekday name means the next such day after today, never today; use `nextDays`. For today, the user says "today".
+2. Treat an appointment as complete with a title, a date and a start time. Derive the title from the request; a role such as "lawyer" is enough, never ask for a first name or surname.
+3. Never guess the date or the start time, but take a date from context ("also", "that day"), or from the newest appointment after a restart, and say which date was used.
+4. Not ask for the alert time: the default is used unless the user asks for a lead time.
+5. Ask for a place when the event is probably at a physical place; for a meeting, ask where it is or if it is online.
+6. Handle each appointment on its own: save complete ones at once, keep incomplete ones in a pending list that never blocks the next request, and end each reply with one list of what is still missing. The pending list lives in the conversation and is lost when the agent exits.
+7. Never book the same appointment twice (revise it, or say it already exists); overlaps are not allowed, so ask for another time.
+8. Before an `edit` or `remove`, use `find-items`, show the item and ask for a yes. If two or more items match, ask which one.
+9. For a series, change only the named occurrence when the request is clear; otherwise ask "Only one Monday, or the whole series?"
+10. Ask for an email address and a name only when the user asks to send an email or an invitation. Invitations use `draft-email` with `appointmentId`; any other email uses `draft-email` with `to`. Never store an email as a note.
+11. Treat drafting as not sending; call `send-draft` only when the latest message asks to send, and then at once, because the program's approval (5.1) is the only confirmation.
+12. Read `ERROR:` results and fix the call or ask the user.
+13. When confirming a change, state only the values in the tool result; pass `endTime` when the user gives an end time or a duration.
+14. Ask for several missing values in one numbered list.
+15. Answer in short, plain sentences.
 
-The confirmation in rule 5 is enforced only by the prompt, not by the code.
+The confirmation in rule 8 is enforced only by the prompt, not by the code.
 
 ## 9. Errors
 
@@ -293,7 +298,7 @@ The confirmation in rule 5 is enforced only by the prompt, not by the code.
   - `AlertScheduler`: due alerts print once; cancelled occurrences do not print.
   - Approval: a fake `UserChannel` answers `y` or `n`; the tool runs only after `y`.
   - Drafts: saving, replacing, listing and removing drafts in `CalendarService`; `DraftFolder` writes, replaces and deletes only its own files.
-  - `draft-invite`: writes to `drafts/`, keeps the id when a draft changes, sends nothing.
+  - `draft-email`: writes invitations and plain emails to `drafts/`, keeps the id when a draft changes, sends nothing.
   - `send-draft`: needs approval; a fake `EmailSender` records one email per attendee with the `.ics`; the draft is removed on success and kept on a failure.
   - `EmlFormatter`: headers, text part, attachment part and boundaries.
   - `FileEmailSender`: one file per email, a numbered name when the name is taken, an error when the folder cannot be written.

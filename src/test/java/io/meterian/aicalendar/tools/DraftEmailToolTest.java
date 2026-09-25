@@ -22,7 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-class DraftInviteToolTest {
+class DraftEmailToolTest {
 
     private static final String FIRST_DRAFT =
             "{'appointmentId':'A-1','subject':'Lunch','body':'Dear John, see you there.'}";
@@ -52,12 +52,12 @@ class DraftInviteToolTest {
         return new Settings(values, new Properties());
     }
 
-    static InviteEmailBuilder buildEmailBuilder(Settings settings) {
-        return new InviteEmailBuilder(settings, new IcsBuilder(ZoneId.of("Europe/Rome")), CLOCK);
+    static DraftEmailBuilder buildEmailBuilder(CalendarService service, Settings settings) {
+        return new DraftEmailBuilder(service, settings, new IcsBuilder(ZoneId.of("Europe/Rome")), CLOCK);
     }
 
-    private DraftInviteTool buildTool(Settings settings) {
-        return new DraftInviteTool(service, buildEmailBuilder(settings), draftFolder);
+    private DraftEmailTool buildTool(Settings settings) {
+        return new DraftEmailTool(service, buildEmailBuilder(service, settings), draftFolder);
     }
 
     @Test
@@ -74,7 +74,7 @@ class DraftInviteToolTest {
 
     @Test
     void editingADraftKeepsItsIdAndReplacesTheText() throws Exception {
-        DraftInviteTool tool = buildTool(buildCompleteSettings());
+        DraftEmailTool tool = buildTool(buildCompleteSettings());
         tool.execute(parseArguments(FIRST_DRAFT));
 
         JsonNode result = Json.MAPPER.readTree(tool.execute(parseArguments(
@@ -86,6 +86,18 @@ class DraftInviteToolTest {
         String eml = Files.readString(draftsPath.resolve("D-1-john_example.com.eml"));
         assertTrue(eml.contains("I may be late. Food is on me."));
         assertFalse(eml.contains("see you there"));
+    }
+
+    @Test
+    void savesAPlainEmailThatIsNotAboutAnEvent() throws Exception {
+        JsonNode result = Json.MAPPER.readTree(buildTool(buildCompleteSettings()).execute(parseArguments(
+                "{'to':[{'name':'Anna Rossi','email':'anna@example.com'}],'subject':'Thanks',"
+                        + "'body':'Dear Anna, thank you for the book.'}")));
+
+        assertEquals("D-1", result.get("draftId").asText());
+        String eml = Files.readString(draftsPath.resolve("D-1-anna_example.com.eml"));
+        assertTrue(eml.contains("Dear Anna, thank you for the book."), eml);
+        assertFalse(eml.contains("invite.ics"), eml);
     }
 
     @Test

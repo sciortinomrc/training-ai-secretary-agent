@@ -57,8 +57,15 @@ class ItemValidator {
     }
 
     void validateDraft(Draft draft) {
-        requireText(draft.appointmentId, "appointmentId");
-        repository.findAppointment(draft.appointmentId);
+        boolean isInvitation = draft.appointmentId != null;
+        boolean isPlainEmail = !draft.recipients.isEmpty();
+        if (isInvitation == isPlainEmail) {
+            throw new CalendarException("Give either appointmentId or recipients.");
+        }
+        if (isInvitation) {
+            repository.findAppointment(draft.appointmentId);
+        }
+        draft.recipients.forEach(ItemValidator::validateAttendee);
         requireText(draft.subject, "subject");
         requireText(draft.body, "body");
     }

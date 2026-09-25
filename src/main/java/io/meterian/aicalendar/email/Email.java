@@ -1,6 +1,6 @@
 package io.meterian.aicalendar.email;
 
-/** One email with one attachment. */
+/** One email, with one attachment or none (attachment is null). */
 public final class Email {
     public final EmailAddress from;
     public final EmailAddress to;

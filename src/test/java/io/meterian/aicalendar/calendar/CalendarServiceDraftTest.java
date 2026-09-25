@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -73,6 +74,22 @@ class CalendarServiceDraftTest {
                 () -> service.saveDraft(buildDraft(null, "A-1", null, "See you.")));
         assertRejected("No draft has the id D-9. Use list-drafts to get the id.",
                 () -> service.saveDraft(buildDraft("D-9", "A-1", "Lunch", "See you.")));
+    }
+
+    @Test
+    void draftNeedsEitherAnAppointmentOrRecipients() {
+        Draft plainEmail = buildDraft(null, null, "Hello", "Hi Anna.");
+        plainEmail.recipients = List.of(new Attendee("Anna Rossi", "anna@example.com"));
+        assertEquals("D-1", service.saveDraft(plainEmail).id);
+
+        assertRejected("Give either appointmentId or recipients.",
+                () -> service.saveDraft(buildDraft(null, null, "Hello", "Hi.")));
+        Draft both = buildDraft(null, "A-1", "Hello", "Hi.");
+        both.recipients = List.of(new Attendee("Anna Rossi", "anna@example.com"));
+        assertRejected("Give either appointmentId or recipients.", () -> service.saveDraft(both));
+        Draft badAddress = buildDraft(null, null, "Hello", "Hi.");
+        badAddress.recipients = List.of(new Attendee("Anna Rossi", "anna-at-example"));
+        assertRejected("'anna-at-example' is not a valid email address.", () -> service.saveDraft(badAddress));
     }
 
     @Test

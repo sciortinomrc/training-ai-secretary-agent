@@ -22,7 +22,8 @@ public class SetAppointmentTool extends AbstractTool {
 
     @Override
     public String getDescription() {
-        return "Create an appointment. title, date, startTime and leadTimeMinutes are required. "
+        return "Create an appointment. title, date and startTime are required. Without leadTimeMinutes, the "
+                + "default alert time is used: do not ask for it. "
                 + "It is rejected when the same appointment (same title and date) already exists, or when it overlaps "
                 + "another appointment: overlaps are not allowed. "
                 + "Derive the title from the request, for example 'Meeting with John Stone'. Ask the user for any "
@@ -35,7 +36,8 @@ public class SetAppointmentTool extends AbstractTool {
                 .addString("title", "Short title, for example 'Dentist'.", true)
                 .addString("date", "Date, YYYY-MM-DD. For a series, the first date.", true)
                 .addString("startTime", "Start time, HH:mm, 24-hour.", true)
-                .addInteger("leadTimeMinutes", "Minutes before startTime when the alert shows, 0 to 10080.", true)
+                .addInteger("leadTimeMinutes", "Optional. Minutes before startTime when the alert shows, 0 to "
+                        + "10080. Leave it out unless the user asks for a lead time.", false)
                 .addString("endTime", "Optional end time, HH:mm, 24-hour.", false)
                 .addString("place", "Optional place.", false)
                 .addProperty("repeat", SchemaBuilder.buildRepeatSchema(), false)
@@ -49,7 +51,10 @@ public class SetAppointmentTool extends AbstractTool {
         appointment.title = arguments.readRequiredText("title");
         appointment.date = arguments.readRequiredDate("date");
         appointment.startTime = arguments.readRequiredTime("startTime");
-        appointment.leadTimeMinutes = arguments.readRequiredInteger("leadTimeMinutes");
+        Integer leadTimeMinutes = arguments.readOptionalInteger("leadTimeMinutes");
+        appointment.leadTimeMinutes = leadTimeMinutes != null
+                ? leadTimeMinutes
+                : GetDefaultLeadTimeTool.DEFAULT_LEAD_TIME_MINUTES;
         appointment.endTime = arguments.readOptionalTime("endTime");
         appointment.place = arguments.readOptionalText("place");
         appointment.repeat = arguments.readOptionalRepeat("repeat");

@@ -53,6 +53,14 @@ class CalendarToolsTest {
     }
 
     @Test
+    void setAppointmentWithoutLeadTimeUsesTheDefault() throws Exception {
+        JsonNode appointment = Json.MAPPER.readTree(new SetAppointmentTool(service).execute(parseArguments(
+                "{'title':'Meeting with lawyer','date':'2026-10-02','startTime':'15:00'}")));
+
+        assertEquals(30, appointment.get("leadTimeMinutes").asInt());
+    }
+
+    @Test
     void setAppointmentWithoutStartTimeAsksForIt() throws Exception {
         String result = new SetAppointmentTool(service).execute(parseArguments(
                 "{'title':'Dentist','date':'2026-09-30','leadTimeMinutes':30}"));
